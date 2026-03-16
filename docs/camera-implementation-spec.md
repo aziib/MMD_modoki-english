@@ -1,21 +1,21 @@
-# カメラ実装・仕様メモ（現行）
+# Camera Implementation/Specification Notes (Current)
 
-対象:
+Target:
 
 - `src/mmd-manager.ts`
 - `src/ui-controller.ts`
 - `index.html`
 
-更新日: 2026-02-21
+Updated: 2026-02-21
 
-## カメラ本体
+## Camera Body
 
-- 型: `ArcRotateCamera`
-- 初期値: `alpha=-PI/2`, `beta=PI/2.2`, `radius=30`, `target=(0,10,0)`
+- Type: `ArcRotateCamera`
+- Initial values: `alpha=-PI/2`, `beta=PI/2.2`, `radius=30`, `target=(0,10,0)`
 - `lowerRadiusLimit=2`, `upperRadiusLimit=100`
 - `wheelDeltaPercentage=0.01`
 
-## 公開API（主要）
+## Public API (Main)
 
 - `getCameraFov()` / `setCameraFov(degrees)`
 - `getCameraDistance()` / `setCameraDistance(distance)`
@@ -23,62 +23,62 @@
 - `setCameraTarget(x, y, z)`
 - `getCameraRotation()` / `setCameraRotation(xDeg, yDeg, zDeg)`
 
-## カメラUI（表示）
+## Camera UI (Shown)
 
-現在表示されるカメラ欄操作子:
+Currently shown camera panel operators:
 
-- 視点ボタン: 左面 / 正面 / 右面
+- Viewpoint buttons: Left / Front / Right
 - FOV: `10..120`
 - DoF ON/OFF
-- 前方補正: `0..20000` mm
-- DoFレンズ: `1..4096`
+- Front correction: `0..20000` mm
+- DoF lens: `1..4096`
 
-## カメラUI（非表示）
+## Camera UI (Hidden)
 
-`dof-row-hidden` を付けて非表示運用している項目:
+Items hidden with `dof-row-hidden`:
 
-- 距離（`cam-distance`）
-- DoF品質
-- DoFフォーカス
+- Distance (`cam-distance`)
+- DoF quality
+- DoF focus
 - DoF F-stop
-- 前抑制
-- 焦点距離反転
-- DoF焦点距離
+- Front suppression
+- Focal length inversion
+- DoF focal length
 
-補足:
+Notes:
 
-- UI非表示でも内部ロジックは有効で、初期値は維持される
+- Internal logic is effective even if UI hidden, and initial values are maintained
 
-## DoF 内部仕様
+## DoF Internal Specification
 
-- 主DoFは `DefaultRenderingPipeline.depthOfField`
-- `dofBlurLevel` 既定: Medium
-- `dofFStop` 既定: 2.8
-- `dofLensSize` 既定: 30
-- オートフォーカス有効（注視点追従）
-- フォーカス帯半径: 6000mm（6m）
-- 前方補正既定: 10000mm（10m）
-- 前抑制既定: 400%（内部値 4.0）
+- Main DoF is `DefaultRenderingPipeline.depthOfField`
+- `dofBlurLevel` default: Medium
+- `dofFStop` default: 2.8
+- `dofLensSize` default: 30
+- Auto focus enabled (follows gaze point)
+- Focus band radius: 6000mm (6m)
+- Front correction default: 10000mm (10m)
+- Front suppression default: 400% (internal value 4.0)
 
-## FoV 連動
+## FoV Linkage
 
-### DoF焦点距離
+### DoF Focal Length
 
-- FoV から焦点距離へ自動換算（センサー幅 36mm）
-- 反転フラグ実装あり（現在 UI 非表示）
+- Auto convert from FoV to focal length (sensor width 36mm)
+- Inversion flag implemented (currently UI hidden)
 
-### 収差
+### Aberration
 
-- FoV連動は有効
-- FoV=30 を中立（0%）
-- FoVが広角側で +100% 方向、望遠側で -100% 方向
-- 実適用は「収差影響度（0..100%）」を掛けた値
+- FoV linkage is enabled
+- FoV=30 is neutral (0%)
+- FoV on wide-angle side goes +100% direction, telephoto side goes -100% direction
+- Actual application is value multiplied by "aberration influence (0..100%)"
 
-## 処理順（終端）
+## Processing Order (End)
 
-終端の順序は固定:
+The order at the end is fixed:
 
-1. 最終収差ポストプロセス
+1. Final aberration post process
 2. FXAA
 
-`enforceFinalPostProcessOrder()` で `収差 -> AA` を維持する。
+Maintain `aberration -> AA` with `enforceFinalPostProcessOrder()`.

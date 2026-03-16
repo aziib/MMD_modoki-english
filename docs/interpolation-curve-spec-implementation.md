@@ -1,70 +1,70 @@
-# 補間曲線 仕様と実装まとめ（現行）
+# Interpolation Curve Specification and Implementation Summary (Current)
 
-更新日: 2026-02-23
-対象:
+Updated: 2026-02-23
+Target:
 - `src/ui-controller.ts`
 - `src/mmd-manager.ts`
 - `src/types.ts`
 - `index.html`
 - `src/index.css`
 
-## 1. 仕様方針（MMD寄せ）
+## 1. Specification Policy (MMD-aligned)
 
-- 補間は 3次Bezier。始点 `(0,0)` / 終点 `(127,127)` 固定。
-- 制御点は `(x1,y1),(x2,y2)` の4値で、各値は `0..127` 整数。
-- 区間 `A -> B` の補間は「到着側キー B が持つ補間値」を使う。
-- ボーンは 4ch 独立: `X / Y / Z / 回転`
-- カメラは 6ch 独立: `X / Y / Z / 回転 / 距離 / FoV`
+- Interpolation is cubic Bezier. Start point `(0,0)` / end point `(127,127)` fixed.
+- Control points are 4 values of `(x1,y1),(x2,y2)`, each value is `0..127` integer.
+- Interpolation for interval `A -> B` uses "interpolation value held by arrival side key B".
+- Bones are 4ch independent: `X / Y / Z / rotation`
+- Camera is 6ch independent: `X / Y / Z / rotation / distance / FoV`
 
-## 2. タイムラインでの補間表示ルール
+## 2. Interpolation Display Rules in Timeline
 
-- 選択フレームにキーがあれば、そのキーの補間を表示。
-- 中間フレーム (`A < f < B`) は、区間に効く後ろキー `B` の補間を表示。
-- 最後のキーより後ろは表示しない（厳密MMD寄り）。
-- カメラは1行表示だが、補間は内部で6chを同時保持して描画。
-- ボーンが回転のみトラックの場合、Pos系は非編集チャンネルとして表示。
+- If key exists at selected frame, display that key's interpolation.
+- Intermediate frames (`A < f < B`) display interpolation of back key `B` effective for interval.
+- Do not display after last key (strictly MMD-aligned).
+- Camera is 1 row display, but internally holds and draws 6ch simultaneously.
+- For bone rotation-only tracks, Pos series displayed as non-editable channels.
 
-## 3. 補間欄UI（現行）
+## 3. Interpolation Panel UI (Current)
 
-- 補間欄は「グラフ優先」レイアウト。
-- 種別はドロップダウン:
-  - `全て`（既定）: 全チャンネル重ね表示
-  - 単チャンネル表示: 編集準備として1chのみ表示可能
-- 色分け:
-  - X: 赤系
-  - Y: 緑系
-  - Z: 青系
-  - Rot: アンバー系
-  - Dist: シアン系
-  - FoV: ピンク系
-- 点線表示は「表示はするが編集対象ではない（available=false）」の意味。
+- Interpolation panel is "graph priority" layout.
+- Type is dropdown:
+  - `All` (default): All channels superimposed display
+  - Single channel display: Can display only 1ch as edit preparation
+- Color coding:
+  - X: Red series
+  - Y: Green series
+  - Z: Blue series
+  - Rot: Amber series
+  - Dist: Cyan series
+  - FoV: Pink series
+- Dotted line display means "displayed but not edit target (available=false)".
 
-## 4. 編集実装（ドラッグ）
+## 4. Edit Implementation (Drag)
 
-- 補間点をドラッグして制御点を更新。
-- 値は都度 `0..127` に clamp + round。
-- 編集対象配列への反映は `interpolationChannelBindings` 経由で直接書き込み。
-- ドラッグ終了時に runtime animation を再生成し、現在フレームへ seek して見た目を同期。
+- Drag interpolation points to update control points.
+- Values are clamped + rounded to `0..127` each time.
+- Reflection to edit target array is direct write via `interpolationChannelBindings`.
+- Regenerate runtime animation at drag end and seek to current frame to synchronize appearance.
 
-## 5. キー登録時の保存実装（今回反映）
+## 5. Save Implementation on Key Registration (This Reflection)
 
-- `addKeyframeAtCurrentFrame()` で、登録前に「現在表示中の補間曲線」をスナップショット取得。
-- `mmdManager.addTimelineKeyframe()` 成功後、新規キー位置へ以下を挿入:
-  - フレーム番号配列
-  - 値配列（位置/回転/距離/FoV）
-  - 補間配列（ボーン4ch / カメラ6ch）
-- ボーン値は `getBoneTransform()` の現在姿勢を使い、回転は Quaternion ブロックへ変換して保存。
-- カメラ値は `getCameraPosition()/Rotation()/Distance()/Fov()` の実値を保存。
-- この処理により「キー登録時の補間」が project 保存対象の source animation 側にも残る。
+- With `addKeyframeAtCurrentFrame()`, take snapshot of "currently displayed interpolation curve" before registration.
+- After `mmdManager.addTimelineKeyframe()` success, insert the following to new key position:
+  - Frame number array
+  - Value array (position/rotation/distance/FoV)
+  - Interpolation array (bone 4ch / camera 6ch)
+- Bone values use current posture of `getBoneTransform()`, rotation converted to Quaternion block and saved.
+- Camera values save actual values of `getCameraPosition()/Rotation()/Distance()/Fov()`.
+- With this processing, "interpolation at key registration" remains in source animation side that is project save target.
 
-## 6. プロジェクト保存との関係
+## 6. Relationship with Project Save
 
-- project保存は `serializeModelAnimation` / `serializeCameraTrack` が source animation を直列化する。
-- そのため、補間編集・キー登録時保存は project JSON に反映される。
-- 配列は packed 形式（`u8-b64`, `f32-b64`, `u32-delta-varint-b64`）で可逆保存される。
+- Project save serializes source animation with `serializeModelAnimation` / `serializeCameraTrack`.
+- Therefore, interpolation edit/key registration save is reflected in project JSON.
+- Arrays are saved reversibly in packed format (`u8-b64`, `f32-b64`, `u32-delta-varint-b64`).
 
-## 7. 未対応/今後
+## 7. Unimplemented/Future
 
-- Property（表示/IK）のステップ編集UI
-- VMDエクスポート（補間の再構成含む）
-- 回転補間のMMD実機との差分検証自動化
+- Property (display/IK) step edit UI
+- VMD export (including interpolation reconstruction)
+- Automated difference verification of rotation interpolation with MMD actual machine

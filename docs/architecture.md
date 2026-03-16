@@ -1,61 +1,61 @@
-﻿# アーキテクチャ概要
+﻿# Architecture Overview
 
-## 全体構成
+## Overall Structure
 
-このアプリは Electron の 3 層構成です。
+This application has a 3-layer Electron structure.
 
 - Main Process: `src/main.ts`
 - Preload: `src/preload.ts`
 - Renderer: `src/renderer.ts`
 
-Renderer 側で以下のコンポーネントを組み立てます。
+The following components are assembled on the Renderer side.
 
-- `MmdManager`: Babylon.js / babylon-mmd の実行本体
-- `mmd-manager-x-extension`: `MmdManager` へ Xアクセサリー機能を拡張
-- `x-file-loader`: Babylon SceneLoader プラグインとして `.x`（text形式）を解釈
-- `Timeline`: キーフレーム描画とシーク UI
-- `BottomPanel`: モーフとモデル情報 UI
-- `UIController`: DOM イベントと上記コンポーネントを接続
+- `MmdManager`: Main execution body for Babylon.js / babylon-mmd
+- `mmd-manager-x-extension`: Extends `MmdManager` with X accessory functionality
+- `x-file-loader`: Interprets `.x` (text format) as a Babylon SceneLoader plugin
+- `Timeline`: Keyframe rendering and seek UI
+- `BottomPanel`: Morph and model information UI
+- `UIController`: Connects DOM events with the above components
 
-補足:
+Notes:
 
-- モデルは `MmdManager` 内で複数保持し、UI からアクティブ対象を切替
-- アクセサリー（`.x`）は拡張側で保持し、UI から親モデル/親ボーンや表示状態を変更
-- `.x` 読込は Babylon の URL 直読みに頼らず、Renderer 側でバイナリを読み込んでから `x-file-loader` へ渡す
-- `.x` テキストは UTF-8 / Shift-JIS の置換文字数を比較して自動判定する
-- `.x` の `baseTexture*sphere(.sph/.spa)` 形式は loader 側で diffuse / sphere に分解する
-- `.x` アクセサリーは MMD ステージに合わせるため、読込時の初期スケールを `10x` にしている
-- 地面表示は上部ツールバーのトグルで ON/OFF
+- Models are held multiple times within `MmdManager`, and the active target is switched from the UI
+- Accessories (`.x`) are held on the extension side, and parent model/parent bone and display state are changed from the UI
+- `.x` loading does not rely on Babylon's direct URL reading, but reads binary on the Renderer side and passes it to `x-file-loader`
+- `.x` text is automatically detected by comparing the number of replacement characters between UTF-8 and Shift-JIS
+- `.x` `baseTexture*sphere(.sph/.spa)` format is decomposed into diffuse / sphere on the loader side
+- `.x` accessories have an initial scale of `10x` at load time to match the MMD stage
+- Ground display is toggled ON/OFF via the upper toolbar
 
-## 起動フロー
+## Startup Flow
 
-1. `electron-forge start` で Main/Preload/Renderer を Vite ビルド
-2. `main.ts` が `BrowserWindow` を作成
-3. `preload.ts` が `window.electronAPI` を公開
-4. `renderer.ts` が各クラスを初期化
-5. ユーザー操作に応じて `UIController -> MmdManager` を呼び出し
+1. Vite builds Main/Preload/Renderer with `electron-forge start`
+2. `main.ts` creates a `BrowserWindow`
+3. `preload.ts` exposes `window.electronAPI`
+4. `renderer.ts` initializes each class
+5. `UIController -> MmdManager` is called in response to user operations
 
-## IPC 役割
+## IPC Roles
 
-Main 側でハンドラを提供します。
+Handlers are provided on the Main side.
 
-- `dialog:openFile`: ファイル選択
-- `file:readBinary`: バイナリ読み込み
-- `file:getInfo`: ファイル情報取得
-- `file:savePng`: PNG保存ダイアログ + 書き込み
+- `dialog:openFile`: File selection
+- `file:readBinary`: Binary reading
+- `file:getInfo`: Get file information
+- `file:savePng`: PNG save dialog + write
 
-Renderer は Preload 経由でのみこれらへアクセスします。
+Renderer accesses these only via Preload.
 
-## ビルドと配布
+## Build and Distribution
 
-- 設定: `forge.config.ts`
-- Vite エントリ
+- Configuration: `forge.config.ts`
+- Vite entry points
   - Main: `src/main.ts`
   - Preload: `src/preload.ts`
   - Renderer: `index.html` + `src/renderer.ts`
 
-主要コマンド:
+Main commands:
 
-- 開発起動: `npm start`
+- Development launch: `npm start`
 - Lint: `npm run lint`
-- 配布ビルド: `npm run package`, `npm run make`
+- Distribution build: `npm run package`, `npm run make`

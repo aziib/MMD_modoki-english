@@ -1,133 +1,133 @@
-﻿# UI と操作フロー
+﻿# UI and Operation Flow
 
-## 画面構成
+## Screen Layout
 
-- 上部: ファイル読込、プロジェクト保存/読込、床・空・AA・物理トグル、状態表示、FPS表示
-- 左: 再生欄 + タイムライン欄
-- 中央: 3D ビューポート
-- 右: エフェクト欄
-- 下部: 情報 / 補間 / ボーン / モーフ / カメラ / 照明 / アクセサリー / 出力
+- Top: File load, project save/load, ground/sky/AA/physics toggles, status display, FPS display
+- Left: Playback panel + timeline panel
+- Center: 3D viewport
+- Right: Effect panel
+- Bottom: Info / Interpolation / Bone / Morph / Camera / Lighting / Accessory / Output
 
-左右パネルの補足:
+Notes on left/right panels:
 
-- 左パネルは横幅変更可能
-- 右のエフェクト欄も横幅変更可能
-- `情報 > 対象` と `エフェクト欄 > 対象` のモデル選択は相互同期する
+- Left panel width is adjustable
+- Right effect panel width is also adjustable
+- Model selection in `Info > Target` and `Effect panel > Target` are mutually synchronized
 
-レイアウト本体は `index.html`、見た目は `src/index.css` で管理します。
+Layout body is managed in `index.html`, appearance in `src/index.css`.
 
-## UI 制御クラス
+## UI Control Class
 
-`src/ui-controller.ts` が以下を担当します。
+`src/ui-controller.ts` handles the following.
 
-- ボタンクリックとショートカットのバインド
-- `MmdManager` のコールバック受け取り
-- タイムラインへの現在フレーム反映
-- 複数モデルのセレクタ更新とアクティブ切替
-- ステータス表示やトースト表示
-- `src/i18n.ts` の辞書キーを使った動的UI文言更新（内部実装は `i18next`）
+- Button click and shortcut binding
+- Receiving callbacks from `MmdManager`
+- Reflecting current frame to timeline
+- Updating selectors for multiple models and switching active
+- Status display and toast display
+- Dynamic UI text updates using dictionary keys from `src/i18n.ts` (internal implementation is `i18next`)
 
-`src/i18n.ts` は以下を提供します。
+`src/i18n.ts` provides the following.
 
-- ロケール管理（`ja` / `en`）
-- `i18next` による翻訳解決とフォールバック
-- `t(key, params)` による文字列解決
-- `data-i18n` / `data-i18n-title` 属性へのDOM反映
-- `window.mmdI18n.setLocale("ja" | "en")` でのランタイム切替（開発向け）
+- Locale management (`ja` / `en`)
+- Translation resolution and fallback via `i18next`
+- String resolution via `t(key, params)`
+- DOM reflection to `data-i18n` / `data-i18n-title` attributes
+- Runtime switching via `window.mmdI18n.setLocale("ja" | "en")` (for development)
 
-## 下パネル補足
+## Bottom Panel Notes
 
-- `情報`:
-  - モデルの統計表示（頂点/ボーン/モーフ）
-  - `対象` セレクタでアクティブモデル切替
-- `補間`:
-  - 選択トラックの補間カーブ編集
-- `ボーン`:
-  - 選択ボーンの位置・回転調整
-- `モーフ`:
-  - 表示枠ごとのモーフスライダー調整
-- `照明`:
-  - 方位角 / 仰角
-  - 光の強さ / 環境光
-  - 影範囲 / 境界幅
-  - 影は UI 上は常時 ON 運用
-  - 影の濃さは既定値 `0.0`、通常 UI では非表示
-- `カメラ`:
-  - 視点（左面/正面/右面）
-  - FOV / 距離
-  - 起動時の距離既定値は `50m`
-  - DoF関連は表示しない（操作はエフェクト欄へ集約）
-- `アクセサリー`:
-  - `対象` セレクタで `.x` アクセサリー選択
-  - `表示/非表示`、`削除`
-  - `親`（World またはモデル）、`ボーン`（モデル中心またはボーン名）
-  - 位置（X/Y/Z）、回転（Rx/Ry/Rz）、拡大率（Si）
-  - `.x` 読込時は初期スケールを `10x` として取り込む
-  - テクスチャ参照は UTF-8 / Shift-JIS の両方を考慮して解決する
-  - `baseTexture*sphere(.sph/.spa)` のような MMD 互換複合指定は分解して読む
-- `出力`:
-  - アスペクト比、解像度プリセット、幅/高さ、画質
-  - FPS ドロップダウン（`24 / 30 / 60`）
-  - `音声あり` チェック
-  - `PNG画像` / `WebM動画`
-  - WebM は `currentFrame -> totalFrames` を出力
-  - `音声あり` ON かつ音声読込済みの場合は WebM に音声を mux する
-  - codec UI は非表示。内部既定値は `VP9`
-  - WebM 出力中は background export lock が入り、busy overlay に phase と `encoded / total` を簡略表示する
+- `Info`:
+  - Model statistics display (vertices/bones/morphs)
+  - Switch active model with `Target` selector
+- `Interpolation`:
+  - Interpolation curve editing for selected track
+- `Bone`:
+  - Position/rotation adjustment for selected bone
+- `Morph`:
+  - Morph slider adjustment per display frame
+- `Lighting`:
+  - Azimuth / elevation
+  - Light intensity / ambient light
+  - Shadow range / boundary width
+  - Shadows are always ON in UI operation
+  - Shadow density default is `0.0`, usually hidden in UI
+- `Camera`:
+  - Viewpoint (left/front/right)
+  - FOV / distance
+  - Startup distance default is `50m`
+  - DoF-related items are not shown (operations are consolidated in effect panel)
+- `Accessory`:
+  - Select `.x` accessory with `Target` selector
+  - `Show/Hide`, `Delete`
+  - `Parent` (World or model), `Bone` (model center or bone name)
+  - Position (X/Y/Z), rotation (Rx/Ry/Rz), scale (Si)
+  - When loading `.x`, initial scale is taken as `10x`
+  - Texture references are resolved considering both UTF-8 and Shift-JIS
+  - MMD-compatible composite specifications like `baseTexture*sphere(.sph/.spa)` are decomposed and read
+- `Output`:
+  - Aspect ratio, resolution preset, width/height, quality
+  - FPS dropdown (`24 / 30 / 60`)
+  - `With audio` checkbox
+  - `PNG image` / `WebM video`
+  - WebM outputs `currentFrame -> totalFrames`
+  - If `With audio` is ON and audio is loaded, WebM muxes audio
+  - Codec UI is hidden. Internal default is `VP9`
+  - During WebM output, background export lock is engaged, and phase and `encoded / total` are briefly displayed in busy overlay
 
-## エフェクト欄補足
+## Effect Panel Notes
 
-- `情報 > 対象` でモデルを選択中:
-  - 材質ごとのプリセット割り当て
-- `情報 > 対象` で `Camera` 選択中:
-  - ポストエフェクト
-    - ImageProcessing系: Gamma / Vignette
-    - DefaultRenderingPipeline系: Bloom / Chroma / Grain / Sharpen / DoF
-    - Color補正系: LUT（3dlプリセット + 強度）
-    - Scene系: Fog（ON/OFF、密度、透明度、色R/G/B）
-    - その他: Distortion / EdgeBlur / Edge
-  - `ToneMap` はエフェクト欄の最下段に配置
-  - 安定性優先の暫定運用として、`Contrast / Exposure / Dither / Curves / Glow / Motion Blur / SSR / VLight` は UI 非表示
-  - SSR は UI 経由では常時 OFF（強度 0 / enabled false）
-  - Bloom は複合項目として `ON/OFF + Weight + Threshold + Kernel`
-  - BloomTh は右へ動かすほど発光範囲が広がるよう、UI操作を反転
-  - DoF関連コントロールは `前後補正` を含めてエフェクト欄へ集約
-  - Fog は `Exp2` 固定で、開始/終了は内部固定値 `100 / 300`
+- When model is selected in `Info > Target`:
+  - Preset assignment per material
+- When `Camera` is selected in `Info > Target`:
+  - Post effects
+    - ImageProcessing series: Gamma / Vignette
+    - DefaultRenderingPipeline series: Bloom / Chroma / Grain / Sharpen / DoF
+    - Color correction series: LUT (3dl presets + intensity)
+    - Scene series: Fog (ON/OFF, density, transparency, color R/G/B)
+    - Others: Distortion / EdgeBlur / Edge
+  - `ToneMap` is placed at the bottom of the effect panel
+  - As a provisional operation prioritizing stability, `Contrast / Exposure / Dither / Curves / Glow / Motion Blur / SSR / VLight` are UI-hidden
+  - SSR is always OFF via UI (intensity 0 / enabled false)
+  - Bloom is a composite item as `ON/OFF + Weight + Threshold + Kernel`
+  - BloomTh UI operation is inverted so that moving right expands the emission range
+  - DoF-related controls including `front/back correction` are consolidated in the effect panel
+  - Fog is fixed at `Exp2`, with start/end internally fixed at `100 / 300`
 
-## 視点制御の優先順位
+## Viewpoint Control Priority
 
-- 再生中:
-  - カメラVMDを優先してビューポートへ反映
-- 停止中:
-  - `情報 > 対象 = Camera` のときのみ、カメラVMDをビューポートへ反映
-  - `情報 > 対象 != Camera` のときはマウス操作を優先し、カメラVMDで視点を上書きしない
-- マウス平行移動:
-  - `中ボタンドラッグ` と `Shift + 右ドラッグ` は同じパン挙動
+- During playback:
+  - Prioritize camera VMD and reflect to viewport
+- During stop:
+  - Only when `Info > Target = Camera`, reflect camera VMD to viewport
+  - When `Info > Target != Camera`, prioritize mouse operations and do not overwrite viewpoint with camera VMD
+- Mouse panning:
+  - `Middle button drag` and `Shift + right drag` have the same pan behavior
 
-## タイムライン描画の仕組み
+## Timeline Rendering Mechanism
 
-`src/timeline.ts` は 3 Canvas 構成です。
+`src/timeline.ts` has a 3 Canvas structure.
 
-- static: トラック背景 + キーフレーム点
-- overlay: ルーラー + 再生ヘッド
-- label: 左ラベル列
+- static: Track background + keyframe points
+- overlay: Ruler + playback head
+- label: Left label column
 
-パフォーマンス面では以下を採用しています。
+In terms of performance, the following are adopted.
 
-- `requestAnimationFrame` で分離描画
-- 可視フレーム範囲のみ描画
-- 二分探索で該当キーフレームのみ走査
-- カメラVMD読込時は `カメラ` レーンを別行で表示（モデル系トラックと同時表示）
+- Separate drawing with `requestAnimationFrame`
+- Draw only visible frame range
+- Scan only relevant keyframes with binary search
+- When loading camera VMD, display `Camera` lane in a separate row (simultaneous display with model tracks)
 
-## ショートカット
+## Shortcuts
 
-- `Space`: 再生/一時停止
-- `Home`: 先頭へ
-- `End`: 末尾へ
-- `← / →`: 1フレーム移動
-- `Shift + ← / →`: 10フレーム移動
-- `Ctrl + O`: PMX/PMD 読み込み
-- `Ctrl + M`: VMD 読み込み
-- `Ctrl + Shift + M`: カメラVMD 読み込み
-- `Ctrl + Shift + A`: 音源読み込み
-- `Ctrl + Shift + S`: PNG出力
+- `Space`: Play/pause
+- `Home`: Jump to start
+- `End`: Jump to end
+- `← / →`: Move 1 frame
+- `Shift + ← / →`: Move 10 frames
+- `Ctrl + O`: Load PMX/PMD
+- `Ctrl + M`: Load VMD
+- `Ctrl + Shift + M`: Load camera VMD
+- `Ctrl + Shift + A`: Load audio
+- `Ctrl + Shift + S`: PNG output

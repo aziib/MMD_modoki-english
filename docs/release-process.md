@@ -1,65 +1,65 @@
-# リリース手順メモ
+# Release Process Notes
 
-更新日: 2026-03-13
+Updated: 2026-03-13
 
-## 目的
+## Purpose
 
-- リリースは `vX.Y.Z` 形式の tag を push して行う。
-- zip 配布物のビルドと GitHub Release への asset 添付は [`.github/workflows/build-zips.yml`](/d:/DevTools/Projects/MMD_modoki/.github/workflows/build-zips.yml) で行う。
-- tag push 時に Windows / macOS / Linux の zip をビルドし、同じ tag 名の prerelease に自動添付する。
+- Releases are performed by pushing tags in `vX.Y.Z` format.
+- Building zip distributions and attaching assets to GitHub Release is done by [`.github/workflows/build-zips.yml`](/d:/DevTools/Projects/MMD_modoki/.github/workflows/build-zips.yml).
+- When tag is pushed, Windows / macOS / Linux zips are built and automatically attached to prerelease with the same tag name.
 
-## 手順
+## Procedure
 
-1. `package.json` と `package-lock.json` の version を更新する。
-2. 必要なら `README.md` と `docs/README.md` の公開向けリンクや説明を更新する。
-3. 動作確認を行う。
-4. 変更を commit して `main` へ push する。
-5. tag を作成して push する。
+1. Update version in `package.json` and `package-lock.json`.
+2. If necessary, update public-facing links and descriptions in `README.md` and `docs/README.md`.
+3. Perform operation verification.
+4. Commit changes and push to `main`.
+5. Create tag and push.
 
 ```bash
 git tag v0.1.3
 git push origin v0.1.3
 ```
 
-6. GitHub Actions の `Build Zip Packages` が成功することを確認する。
-7. GitHub Releases で生成された prerelease を確認する。
+6. Confirm that GitHub Actions `Build Zip Packages` succeeds.
+7. Confirm the generated prerelease in GitHub Releases.
 
-## 自動で作られるもの
+## Automatically Created Items
 
 - Windows zip
 - macOS zip
 - Linux zip
-- prerelease 本文の初期版
-- zip assets の release への添付
+- Initial version of prerelease body
+- Attachment of zip assets to release
 
-release 名は `MMD modoki vX.Y.Z` になる。
+Release name becomes `MMD modoki vX.Y.Z`.
 
-## 確認ポイント
+## Verification Points
 
-- 3 OS 分の zip が release assets に並んでいるか
-- prerelease 扱いになっているか
-- zip 名が想定した version になっているか
-- Linux 版の注意事項や既知不具合が必要なら release note に反映されているか
+- Are zips for 3 OSs lined up in release assets?
+- Is it treated as prerelease?
+- Is zip name the expected version?
+- If Linux version notes or known bugs are necessary, are they reflected in release note?
 
-## Linux 版メモ
+## Linux Version Notes
 
-- Linux 版 zip は起動時に `--no-sandbox` を付けて確認する。
-- 必要に応じて `--disable-setuid-sandbox` も併用する。
-- `chrome-sandbox` 起因の起動失敗を避けるための暫定対応なので、配布案内にも同じ注意を書いておく。
+- Linux version zip is verified by starting with `--no-sandbox`.
+- If necessary, also use `--disable-setuid-sandbox`.
+- This is a temporary measure to avoid startup failure caused by `chrome-sandbox`, so write the same note in distribution announcement.
 
-起動例:
+Startup example:
 
 ```bash
 ./MMD_modoki --no-sandbox
 ```
 
-必要なら:
+If necessary:
 
 ```bash
 ./MMD_modoki --no-sandbox --disable-setuid-sandbox
 ```
 
-## 補足
+## Supplementary
 
-- 手元の `npm run make:zip` はローカル OS 向けの確認用途。正式な配布物は GitHub Actions の結果を使う。
-- workflow 失敗時は Actions の artifact から zip を確認できるが、通常は release assets から確認する。
+- Local `npm run make:zip` is for verification for local OS. Official distributions use GitHub Actions results.
+- When workflow fails, zip can be confirmed from Actions artifact, but usually confirm from release assets.

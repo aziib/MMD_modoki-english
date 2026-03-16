@@ -1,75 +1,75 @@
-# VMD/VPD 読み込み挙動メモ
+# VMD/VPD Import Behavior Notes
 
-更新日: 2026-02-23
-対象:
+Updated: 2026-02-23
+Target:
 - `src/mmd-manager.ts`
 - `src/ui-controller.ts`
 
-## 1. ファイル種別
-- `loadVMD(filePath)` は拡張子で分岐
-- `.vmd`: モデルモーション
-- `.vpd`: ポーズ（`loadVPD` へ委譲）
-- カメラVMDは `loadCameraVMD(filePath)` で別経路
+## 1. File Type
+- `loadVMD(filePath)` branches by extension
+- `.vmd`: Model motion
+- `.vpd`: Pose (delegates to `loadVPD`)
+- Camera VMD is separate path with `loadCameraVMD(filePath)`
 
-参照:
+Reference:
 - `src/mmd-manager.ts:2016`
 - `src/mmd-manager.ts:2148`
 
-## 2. モデルVMD
-- 現在モデル必須。未ロードならエラー。
-- 読み込み時点の `currentFrame` を保持し、適用後にそのフレームへ `seekTo`。
-- `modelSourceAnimationsByModel` を新アニメーションで更新。
-- `buildModelTrackFrameMapFromAnimation` でタイムラインフレーム列を再生成。
+## 2. Model VMD
+- Current model required. Error if not loaded.
+- Hold `currentFrame` at load time and `seekTo` to that frame after application.
+- Update `modelSourceAnimationsByModel` with new animation.
+- Regenerate timeline frame column with `buildModelTrackFrameMapFromAnimation`.
 
-参照:
+Reference:
 - `src/mmd-manager.ts:2021`
 - `src/mmd-manager.ts:2026`
 - `src/mmd-manager.ts:2055`
 
 ## 3. VPD
-- 現在モデル必須。未ロードならエラー。
-- 読み込み時の `currentFrame` を `frameOffset` として適用。
-- 既存アニメーションがある場合は `mergeModelAnimations(base, overlay)` で統合。
-- 同一フレーム競合時は overlay（新規読み込み）側を優先。
-- 読み込み後に `seekTo(loadFrame)` で編集位置を維持。
+- Current model required. Error if not loaded.
+- Apply `currentFrame` at load time as `frameOffset`.
+- If existing animation, integrate with `mergeModelAnimations(base, overlay)`.
+- On same frame conflict, prioritize overlay (new load) side.
+- Maintain edit position with `seekTo(loadFrame)` after load.
 
-参照:
+Reference:
 - `src/mmd-manager.ts:2084`
 - `src/mmd-manager.ts:2102`
 - `src/mmd-manager.ts:2105`
 - `src/mmd-manager.ts:3523`
 
-## 4. カメラVMD
-- cameraTrack を検証し、空ならエラー。
-- カメラruntimeアニメーションを差し替え。
-- `cameraKeyframeFrames` を更新してタイムライン（`Camera` 1行）へ反映。
-- 読み込み後は `currentFrame = 0` に初期化。
+## 4. Camera VMD
+- Verify cameraTrack, error if empty.
+- Replace camera runtime animation.
+- Update `cameraKeyframeFrames` and reflect to timeline (`Camera` 1 row).
+- Initialize to `currentFrame = 0` after load.
 
-参照:
+Reference:
 - `src/mmd-manager.ts:2166`
 - `src/mmd-manager.ts:2178`
 - `src/mmd-manager.ts:2181`
 
-## 5. totalFrames 更新ルール
-- 基本は `emitMergedKeyframeTracks()` 内で `refreshTotalFramesFromContent()` が再計算。
-- 音源なしでキーがある場合は `maxFrame` ベースで長さ確保。
-- `seekTo(frame)` は `frame > totalFrames` なら上限を拡張。
+## 5. totalFrames Update Rule
+- Basically `refreshTotalFramesFromContent()` recalculates in `emitMergedKeyframeTracks()`.
+- If keys exist without audio, ensure length based on `maxFrame`.
+- `seekTo(frame)` expands upper limit if `frame > totalFrames`.
 
-参照:
+Reference:
 - `src/mmd-manager.ts:3887`
 - `src/mmd-manager.ts:2298`
 
-## 6. UI反映
-- 読み込み完了時に `onMotionLoaded` / `onCameraMotionLoaded` 通知。
-- UI側は `timeline.setTotalFrames(frameCount)` とトースト表示を実行。
-- 実キー行は `onKeyframesLoaded` で別途再描画。
+## 6. UI Reflection
+- Notify `onMotionLoaded` / `onCameraMotionLoaded` on load completion.
+- UI side executes `timeline.setTotalFrames(frameCount)` and toast display.
+- Actual key rows are redrawn separately with `onKeyframesLoaded`.
 
-参照:
+Reference:
 - `src/ui-controller.ts:759`
 - `src/ui-controller.ts:766`
 - `src/ui-controller.ts:774`
 
-## 7. 現状の制約
-- 追加読み込みは「合成」だが、編集値の厳密管理は未整備（フレーム位置中心）。
-- カメラ値スナップショットはキー登録時に保存されるが、範囲編集は未対応。
-- VMDエクスポートは未実装。
+## 7. Current Constraints
+- Additional load is "composition", but strict management of edit values is not prepared (centered on frame position).
+- Camera value snapshot is saved on key registration, but range editing is not supported.
+- VMD export is not implemented.

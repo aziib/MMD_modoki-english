@@ -1,8 +1,8 @@
-# MMD基本機能 実装状況チェックリスト
+# MMD Basic Function Implementation Status Checklist
 
-更新日: 2026-02-24
+Updated: 2026-02-24
 
-## 判定対象
+## Evaluation Target
 
 - `src/mmd-manager.ts`
 - `src/ui-controller.ts`
@@ -18,155 +18,155 @@
 - `docs/physics-task-list.md`
 - `docs/physics-runtime-spec.md`
 
-## 1. モデル・モーション・再生
+## 1. Model/Motion/Playback
 
-- [x] PMX/PMD 読み込み
-- [ ] Xモデル（`.x`）読み込み
-- [x] 複数モデル同時保持
-- [x] アクティブモデル切り替え
-- [x] VMD モーション読み込み（アクティブモデルへ適用）
-- [x] VPD ポーズ読み込み（選択フレームにオフセットして登録）
-- [x] カメラVMD 読み込み
-- [x] 音源読み込み（MP3/WAV/OGG）
-- [x] 音源なし再生（キーのみでも再生可能）
-- [x] 再生 / 一時停止 / 停止
-- [x] 最終フレーム到達時の自動停止（停止時は末尾フレームを維持）
-- [x] フレームシーク
-- [ ] 再生速度切り替え（現行UIでは未提供）
+- [x] PMX/PMD loading
+- [ ] X model (`.x`) loading
+- [x] Multiple model simultaneous holding
+- [x] Active model switching
+- [x] VMD motion loading (apply to active model)
+- [x] VPD pose loading (register offset to selected frame)
+- [x] Camera VMD loading
+- [x] Audio loading (MP3/WAV/OGG)
+- [x] Playback without audio (playable with keys only)
+- [x] Play / pause / stop
+- [x] Auto stop when reaching final frame (maintain end frame when stopped)
+- [x] Frame seek
+- [ ] Playback speed switching (not provided in current UI)
 
-## 2. ビューポート・見た目
+## 2.Viewport/Appearance
 
-- [x] 地面表示 ON/OFF
-- [x] スカイドーム表示 ON/OFF
-- [x] ライティング調整（方向・強度・色温度）
-- [x] 影調整（濃さ・境界ソフトネス）
+- [x] Ground display ON/OFF
+- [x] Skydome display ON/OFF
+- [x] Lighting adjustment (direction/intensity/color temperature)
+- [x] Shadow adjustment (density/boundary softness)
 - [x] AA ON/OFF
-- [x] DoF/レンズ関連の調整（品質・焦点距離・F-stop ほか）
-- [x] モデル輪郭（エッジ幅）調整
-- [x] PNG 出力
-- [ ] MP4 出力（WebCodecs + mux）
-- [x] UI非表示モード（アプリ内、ESCで復帰）
+- [x] DoF/lens related adjustment (quality/focal length/F-stop etc.)
+- [x] Model outline (edge width) adjustment
+- [x] PNG output
+- [ ] MP4 output (WebCodecs + mux)
+- [x] UI hidden mode (in-app, return with ESC)
 
-## 3. タイムライン・編集操作
+## 3. Timeline/Edit Operations
 
-### 3-1. 現在の実装
+### 3-1. Current Implementation
 
-- [x] キーフレーム可視化（ボーン/モーフ/カメラ）
-- [x] タイムラインからのシーク
-- [x] モーフ手動操作（先頭30件）
-- [x] キーフレーム編集（追加/削除/1フレーム移動）
-- [x] ボーン直接操作（フェーダー/ギズモ）とキーフレーム登録
-- [x] カメラキーフレーム編集
-- [ ] VMD 書き出し
-- [x] プロジェクト保存/読み込み（JSON）
-- [x] プロジェクトへキーフレーム本体・補間情報を保存/復元
-- [x] プロジェクトのキーフレームデータを非破壊圧縮（可逆）
+- [x] Keyframe visualization (bones/morphs/camera)
+- [x] Seek from timeline
+- [x] Morph manual operation (first 30 items)
+- [x] Keyframe editing (add/delete/1 frame move)
+- [x] Bone direct operation (fader/gizmo) and keyframe registration
+- [x] Camera keyframe editing
+- [ ] VMD export
+- [x] Project save/load (JSON)
+- [x] Save/restore keyframe body and interpolation information to project
+- [x] Non-destructive compression of project keyframe data (reversible)
 
-### 3-2. UI連携・ボーン可視化（2026-02-22 実装反映）
+### 3-2. UI Cooperation/Bone Visualization (2026-02-22 implementation reflected)
 
-- [x] 情報欄に `0: Camera` を表示し、対象切替をカメラ/モデルで統一
-- [x] 情報欄にモデル表示/非表示・削除を追加
-- [x] ボーン欄/モーフ欄を追加（ドロップダウン + フェーダー）
-- [x] タイムライン選択・ボーン欄選択・3Dボーン選択の相互同期
-- [x] PMXボーン順ベースのタイムライン表示（`全ての親` 先頭）
-- [x] PMX可視フラグ/物理用ボーンを除外したボーン表示
-- [x] 選択中ボーンのみ色変更（前面表示）
-- [x] 再生中はボーン表示を自動OFF
-- [x] ボーン種別に応じた操作チャンネル表示（回転のみ/移動+回転）
+- [x] Display `0: Camera` in info panel, unify target switching for camera/model
+- [x] Add model show/hide/delete to info panel
+- [x] Add bone panel/morph panel (dropdown + fader)
+- [x] Mutual synchronization of timeline selection/bone panel selection/3D bone selection
+- [x] Timeline display based on PMX bone order (`All Parents` at head)
+- [x] Bone display excluding PMX visible flag/physics-only bones
+- [x] Color change only for selected bone (front display)
+- [x] Auto hide bone display during playback
+- [x] Display operation channels according to bone type (rotation only/move+rotate)
 
-### 3-3. MMD互換仕様タスク（2026-02-22 調査反映）
+### 3-3. MMD Compatibility Specification Tasks (2026-02-22 investigation reflected)
 
-- [x] 時間軸を 30fps 固定のフレーム番号で統一（UI/内部API）
-- [x] キー種別の明示表示（Bone/Morph/Property/Camera）
-- [x] ボーン補間編集（X/Y/Z/回転 の4チャンネル独立）
-- [x] カメラ補間編集（X/Y/Z/回転/距離/FOV の6チャンネル独立）
-- [x] 補間パラメータの 0..127 レンジ編集と保持
-- [ ] Property（表示/IK）をステップ補間として編集/プレビュー
-- [x] 同一トラック同一フレームの競合時ルールを「後勝ち」で統一
-- [ ] 回転補間のMMD実機比較テスト（代表VMDで差分確認）
-- [ ] VMD書き出し時に補間・Property情報を欠落なく出力
+- [x] Unify time axis with 30fps fixed frame numbers (UI/internal API)
+- [x] Explicit display of key types (Bone/Morph/Property/Camera)
+- [x] Bone interpolation editing (4 channels independent: X/Y/Z/rotation)
+- [x] Camera interpolation editing (6 channels independent: X/Y/Z/rotation/distance/FOV)
+- [x] 0..127 range editing and holding of interpolation parameters
+- [ ] Edit/preview Property (display/IK) as step interpolation
+- [x] Unify rule for same track same frame conflict as "later wins"
+- [ ] MMD actual machine comparison test for rotation interpolation (check difference with representative VMD)
+- [ ] Output interpolation/Property information without omission on VMD export
 
-### 3-4. UI/入出力改修（2026-02-24 反映）
+### 3-4. UI/Input/Output Modification (2026-02-24 reflected)
 
-- [x] ツールバーの読込機能を `ファイル読込` ボタンに統合（PMX/PMD/VMD/VPD/音源）
-- [x] ドラッグ&ドロップ読み込み（複数ファイル、優先度付き順次処理）
-- [x] Electron `webUtils.getPathForFile` を使ったDnDパス解決（環境差分対策）
-- [x] シェーダー欄の常時非表示化（UI上のトグルを撤去）
-- [x] UI非表示開始時に ESC 復帰案内トーストを表示
+- [x] Integrate toolbar loading function to `Load File` button (PMX/PMD/VMD/VPD/audio)
+- [x] Drag & drop loading (multiple files, priority-based sequential processing)
+- [x] DnD path resolution using Electron `webUtils.getPathForFile` (environment difference countermeasure)
+- [x] Always hide shader panel (remove toggle on UI)
+- [x] Show ESC return guide toast when starting UI hidden
 
-## 4. 物理
+## 4. Physics
 
-- [x] Ammo wasm 初期化と失敗時フォールバック
-- [x] 物理 ON/OFF 切り替え
-- [x] 重力加速度・方向のUI調整
-- [x] `disableOffsetForConstraintFrame: true` でのモデル生成
-- [x] 先頭/末尾ジャンプ時の剛体再初期化（慣性暴走の抑制）
-- [ ] 剛体モード 0/1/2 の運用仕様を明文化して実装
-- [ ] `disableBidirectionalTransformation` 相当の切替
-- [ ] 剛体/拘束デバッグ可視化
-- [ ] シーク/再生速度変更時の安定性検証
-- [ ] 回帰テストの整備
+- [x] Ammo wasm initialization and fallback on failure
+- [x] Physics ON/OFF switching
+- [x] UI adjustment of gravity acceleration/direction
+- [x] Model generation with `disableOffsetForConstraintFrame: true`
+- [x] Rigid body reinitialization at head/end jump (suppress inertia runaway)
+- [ ] Document and implement operation specification for rigid body modes 0/1/2
+- [ ] Switching equivalent to `disableBidirectionalTransformation`
+- [ ] Rigid body/constraint debug visualization
+- [ ] Stability verification on seek/playback speed change
+- [ ] Regression test preparation
 
-## 5. モデル形式拡張（Babylon.js Editor連携）
+## 5. Model Format Extension (Babylon.js Editor Cooperation)
 
-- [ ] Babylon.js Editor 対応3D形式の調査と優先度決定
-- [ ] glTF/GLB 読み込み（静的メッシュ）
-- [ ] glTF/GLB 読み込み（スキン/アニメーション）
-- [ ] OBJ 読み込み
-- [ ] STL 読み込み
-- [ ] `.babylon` 読み込み
-- [ ] 点群/ガウシアンスプラット読み込み（`.ply` / `.splat` / `.spz` / `.sog`、低優先）
-- [ ] 形式ごとの座標系/単位系の正規化（Y-up/Z-up, スケール）
-- [ ] 形式ごとのマテリアル/テクスチャ差分吸収ポリシー策定
-- [ ] タイムライン対象外形式の編集制限UI（読み込み専用ガード）
+- [ ] Investigation and priority determination of Babylon.js Editor supported 3D formats
+- [ ] glTF/GLB loading (static mesh)
+- [ ] glTF/GLB loading (skin/animation)
+- [ ] OBJ loading
+- [ ] STL loading
+- [ ] `.babylon` loading
+- [ ] Point cloud/Gaussian splat loading (`.ply` / `.splat` / `.spz` / `.sog`, low priority)
+- [ ] Coordinate system/unit system normalization per format (Y-up/Z-up, scale)
+- [ ] Material/texture difference absorption policy definition per format
+- [ ] Edit restriction UI for timeline-excluded formats (read-only guard)
 
 ## 6. WebGPU / WGSL
 
-- [x] WebGPU 起動経路の追加（利用不可時はWebGL2へフォールバック）
-- [x] WebGPU 時の描画安定性確認（モデル/影/ポストエフェクト）
-- [x] カスタムシェーダの WGSL 対応方針策定（GLSL互換運用を含む）
-- [ ] 必要箇所の WGSL 化（影・輪郭・ポストエフェクト優先）
-- [ ] WebGL2 vs WebGPU の性能比較計測（FPS/VRAM/起動時間）
-- [x] WebGPU 経路の既知制限整理と設定UI反映
+- [x] Add WebGPU startup path (fallback to WebGL2 when unavailable)
+- [x] Confirm rendering stability on WebGPU (model/shadows/post effects)
+- [x] Define WGSL support policy for custom shaders (including GLSL compatible operation)
+- [ ] WGSL conversion of necessary parts (shadows/outline/post effects priority)
+- [ ] WebGL2 vs WebGPU performance comparison measurement (FPS/VRAM/startup time)
+- [x] Organize known limitations of WebGPU path and reflect to settings UI
 
-## 7. 配布ビルド（リリース準備）
+## 7. Distribution Build (Release Preparation)
 
-- [ ] 配布ターゲット定義（Windows優先、macOS/Linuxは任意）
-- [ ] `electron-forge make` 向け設定見直し（maker構成、成果物形式）
-- [ ] アプリ情報整備（アプリアイコン、ProductName、Version、説明）
-- [ ] 起動時依存の同梱確認（wasm/モデルローダ/プリロード）
-- [ ] 署名・配布ポリシー整理（証明書、SmartScreen対策）
-- [ ] クリーン環境でのインストール/起動スモークテスト
-- [ ] 配布手順ドキュメント化（ビルド手順、既知制限、更新手順）
+- [ ] Distribution target definition (Windows priority, macOS/Linux optional)
+- [ ] Review configuration for `electron-forge make` (maker configuration, artifact format)
+- [ ] App information preparation (app icon, ProductName, Version, description)
+- [ ] Confirm startup dependency bundling (wasm/model loader/preload)
+- [ ] Signature/distribution policy organization (certificate, SmartScreen countermeasures)
+- [ ] Installation/startup smoke test in clean environment
+- [ ] Distribution procedure documentation (build procedure, known limitations, update procedure)
 
-## 8. 拡張連携・操作性
+## 8. Extension Cooperation/Usability
 
-- [ ] WebCodex API 連携基盤（接続・認証・エラーハンドリング）
-- [ ] WebCodex API 経由の基本操作（ファイル読込・再生制御・シーク）
-- [ ] MIDIコントローラー入力対応（Web MIDI API / Electron環境確認）
-- [ ] MIDIマッピング機能（再生系・カメラ系・モーフ/ボーン系）
-- [ ] ショートカットキーカスタム（アクション割当）
-- [ ] ショートカット設定の永続化（ユーザー設定として保存/読込）
-- [ ] UI 多言語対応（i18n辞書・キー運用・ランタイム切替UI）
-- [ ] テーマ対応（ライトモード / ダークモード切替 + 永続化）
+- [ ] WebCodex API cooperation foundation (connection/authentication/error handling)
+- [ ] Basic operations via WebCodex API (file loading/playback control/seek)
+- [ ] MIDI controller input support (Web MIDI API / Electron environment confirmation)
+- [ ] MIDI mapping function (playback series/camera series/morph/bone series)
+- [ ] Shortcut key customization (action assignment)
+- [ ] Shortcut setting persistence (save/load as user settings)
+- [ ] UI multilingual support (i18n dictionary/key operation/runtime switching UI)
+- [ ] Theme support (light mode / dark mode switching + persistence)
 
-## 直近タスク（MMD基本機能として優先）
+## Recent Tasks (Priority as MMD Basic Functions)
 
-- [x] カメラ編集（位置/回転/距離/FOV）と 6ch補間編集
-- [x] カメラキーフレーム編集（追加時に実値スナップショット保存）
-- [ ] Property（表示/IK）のステップ編集とタイムライン反映
-- [ ] 回転補間のMMD比較検証（代表モーションで差分測定）
-- [ ] VMD エクスポート
-- [ ] MP4 出力（WebCodecs + mux）
-- [x] プロジェクト保存/読み込み
-- [ ] 物理の未完了項目を `docs/physics-task-list.md` に沿って消化
-- [ ] Xモデル（`.x`）読み込みのPoC実装
-- [ ] Babylon.js Editor形式の第1弾対応（候補: glTF/GLB）
-- [ ] OBJ/STL 読み込み対応（最低限の静的配置パス）
-- [ ] WebCodex API 連携のPoC（接続確認 + 1操作）
-- [ ] MIDIコントローラー対応のPoC（1デバイス・数ノブ）
-- [ ] ショートカットキーのカスタム設定UI
-- [ ] UI 多言語対応（ja/en から着手）
-- [ ] ライトモード / ダークモード切替対応
-- [x] WebGPUフォールバック起動パス実装
-- [ ] 配布向けビルド手順の確立（Windows）
+- [x] Camera editing (position/rotation/distance/FOV) and 6ch interpolation editing
+- [x] Camera keyframe editing (save actual value snapshot on add)
+- [ ] Property (display/IK) step editing and timeline reflection
+- [ ] MMD comparison verification for rotation interpolation (measure difference with representative motion)
+- [ ] VMD export
+- [ ] MP4 output (WebCodecs + mux)
+- [x] Project save/load
+- [ ] Digest incomplete physics items along `docs/physics-task-list.md`
+- [ ] X model (`.x`) loading PoC implementation
+- [ ] First Babylon.js Editor format support (candidate: glTF/GLB)
+- [ ] OBJ/STL loading support (minimum static placement path)
+- [ ] WebCodex API cooperation PoC (connection confirmation + 1 operation)
+- [ ] MIDI controller support PoC (1 device/few knobs)
+- [ ] Shortcut key custom setting UI
+- [ ] UI multilingual support (start from ja/en)
+- [ ] Light mode / dark mode switching support
+- [x] WebGPU fallback startup path implementation
+- [ ] Establish distribution-oriented build procedure (Windows)

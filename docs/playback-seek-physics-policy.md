@@ -1,72 +1,72 @@
-# 再生・シーク・物理 ポリシー
+# Playback/Seek/Physics Policy
 
-更新日: 2026-02-22
-対象:
+Updated: 2026-02-22
+Target:
 - `src/mmd-manager.ts`
 - `src/ui-controller.ts`
 
-## 1. 再生モード
-- `play()` は2系統。
-- 音源あり: runtimeの通常再生
-- 音源なし: `manualPlaybackWithoutAudio = true` で手動進行
+## 1. Playback Mode
+- `play()` has 2 systems.
+- With audio: Runtime normal playback
+- Without audio: Manual progression with `manualPlaybackWithoutAudio = true`
 
-参照: `src/mmd-manager.ts:2263`
+Reference: `src/mmd-manager.ts:2263`
 
-## 2. 音源なし再生
-- 1フレームごとに `deltaMs` を30fps換算して進行。
-- `manualPlaybackFrameCursor` を進め、`seekAnimation` で反映。
-- `totalFrames` を上限としてクランプ。
+## 2. Playback Without Audio
+- Progress by converting `deltaMs` to 30fps every frame.
+- Advance `manualPlaybackFrameCursor` and reflect with `seekAnimation`.
+- Clamp with `totalFrames` as upper limit.
 
-参照: `src/mmd-manager.ts:1571`
+Reference: `src/mmd-manager.ts:1571`
 
-## 3. シーク
+## 3. Seek
 
-### 3-1. 通常シーク
+### 3-1. Normal Seek
 - `seekTo(frame)`:
-- `frame` を整数化し下限0
-- `frame > totalFrames` なら `totalFrames` を拡張
-- runtimeへ即時反映して `onFrameUpdate` 通知
+- Integerize `frame` and lower limit 0
+- If `frame > totalFrames`, expand `totalFrames`
+- Immediately reflect to runtime and notify `onFrameUpdate`
 
-参照: `src/mmd-manager.ts:2298`
+Reference: `src/mmd-manager.ts:2298`
 
-### 3-2. 先頭/末尾ジャンプ
+### 3-2. Head/End Jump
 - `seekToBoundary(frame)`:
-- 再生中なら一度 `pause()`
+- If playing, `pause()` once
 - `seekTo(frame)`
 - `stabilizePhysicsAfterHardSeek()`
-- 元が再生中なら `play()` 再開
+- If originally playing, restart `play()`
 
-参照: `src/mmd-manager.ts:2311`
+Reference: `src/mmd-manager.ts:2311`
 
-## 4. 物理安定化
-- 大きいジャンプ後の慣性暴走防止として、`stabilizePhysicsAfterHardSeek()` を実行。
-- 実装:
-- `applyPhysicsStateToAllModels()` で剛体を再初期化
-- 現在フレームへ `seekAnimation` 再適用
+## 4. Physics Stabilization
+- Execute `stabilizePhysicsAfterHardSeek()` to prevent inertia runaway after large jumps.
+- Implementation:
+- Reinitialize rigid bodies with `applyPhysicsStateToAllModels()`
+- Reapply `seekAnimation` to current frame
 
-参照: `src/mmd-manager.ts:2325`
+Reference: `src/mmd-manager.ts:2325`
 
-## 5. 末尾停止挙動
-- `onFrameUpdate` 側で `frame >= total` を検知し、`stopAtPlaybackEnd()`。
-- 実際は `pause()` + `seekTo(totalFrames)` で、末尾フレームを維持する。
-- `stop()` のように0フレームへ戻さない。
+## 5. End Stop Behavior
+- Detect `frame >= total` on `onFrameUpdate` side and `stopAtPlaybackEnd()`.
+- Actually `pause()` + `seekTo(totalFrames)`, maintaining end frame.
+- Does not return to 0 frame like `stop()`.
 
-参照:
+Reference:
 - `src/ui-controller.ts:706`
 - `src/ui-controller.ts:1356`
 
-## 6. ボーン編集との整合
-- 再生中はボーンオーバーレイ/ギズモを非表示・無効化。
-- ギズモドラッグ中は物理を一時OFF、終了時に復帰。
+## 6. Consistency with Bone Editing
+- During playback, hide/disable bone overlay/gizmo.
+- During gizmo drag, temporarily turn physics OFF, return on completion.
 
-参照:
+Reference:
 - `src/mmd-manager.ts:457`
 - `src/mmd-manager.ts:763`
 - `src/mmd-manager.ts:1528`
 
-## 7. 運用ルール（推奨）
-- 再生制御変更時は次を必ず回帰確認:
-- 音源あり/なし両方で再生できる
-- 末尾停止後に末尾フレーム維持
-- Home/End連打で物理暴走しない
-- 物理ON中のギズモ操作で吹き飛びが起きない
+## 7. Operation Rules (Recommended)
+- Always confirm regression when changing playback control:
+- Can play both with and without audio
+- Maintain end frame after end stop
+- No physics runaway with Home/End rapid fire
+- No blow away with gizmo operation during physics ON

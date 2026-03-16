@@ -1,82 +1,81 @@
-# MmdManager 実装メモ
+# MmdManager Implementation Notes
 
-対象: `src/mmd-manager.ts`
+Target: `src/mmd-manager.ts`
 
-## 役割
+## Role
 
-- Babylon.js の初期化（Engine/Scene/Camera/Light）
-- MMD ランタイム管理（PMX/PMD, VMD, カメラVMD, 音源）
-- 物理（Ammo + babylon-mmd）初期化と有効/無効切替
-- ポストエフェクト管理（DoF、レンズ系、ガンマ、AA）
-- UI 層からの値適用とフレーム同期通知
+- Babylon.js initialization (Engine/Scene/Camera/Light)
+- MMD runtime management (PMX/PMD, VMD, camera VMD, audio)
+- Physics (Ammo + babylon-mmd) initialization and enable/disable switching
+- Post effect management (DoF, lens series, gamma, AA)
+- Value application from UI layer and frame synchronization notification
 
-## 現在の描画パイプライン
+## Current Rendering Pipeline
 
-このプロジェクトでは DoF とレンズ系を分離している。
+This project separates DoF and lens series.
 
-1. `DefaultRenderingPipeline` で主 DoF を実行
-2. `LensRenderingPipeline` はハイライト/エッジブラー用途で使用
-3. 収差は独自 `PostProcess`（`finalLensDistortionPostProcess`）で最終段近くに適用
-4. AA は `FxaaPostProcess` を最後に適用
+1. Execute main DoF with `DefaultRenderingPipeline`
+2. `LensRenderingPipeline` is used for highlight/edge blur purposes
+3. Aberration is applied near the final stage with a custom `PostProcess` (`finalLensDistortionPostProcess`)
+4. AA is applied last with `FxaaPostProcess`
 
-補足:
+Notes:
 
-- 収差と AA の順序は `enforceFinalPostProcessOrder()` で固定
-- 常に `収差 -> AA` になるよう再アタッチしている
+- The order of aberration and AA is fixed by `enforceFinalPostProcessOrder()`
+- Re-attaching to always become `aberration -> AA`
 
-## DoF / レンズの要点
+## DoF / Lens Key Points
 
-- 主 DoF: `DefaultRenderingPipeline.depthOfField`
-- `dofBlurLevelValue` 既定: `Medium`
-- `dofFStopValue` 既定: `2.8`
-- `dofLensSizeValue` 既定: `30`
-- `dofAutoFocusToCameraTarget` は `true`
-- `dofAutoFocusInFocusRadiusMm` は `6000`（約 6m）
-- `dofNearSuppressionScaleValue` は `4.0`
-- `dofAutoFocusNearOffsetMmValue` は `10000`（10m）
+- Main DoF: `DefaultRenderingPipeline.depthOfField`
+- `dofBlurLevelValue` default: `Medium`
+- `dofFStopValue` default: `2.8`
+- `dofLensSizeValue` default: `30`
+- `dofAutoFocusToCameraTarget` is `true`
+- `dofAutoFocusInFocusRadiusMm` is `6000` (about 6m)
+- `dofNearSuppressionScaleValue` is `4.0`
+- `dofAutoFocusNearOffsetMmValue` is `10000` (10m)
 
-### 収差
+### Aberration
 
-- FoV 連動は有効（`dofLensDistortionFollowsCameraFov = true`）
-- 中立 FoV: `30`
-- 望遠端 FoV: `10` -> `-100%` 側
-- 広角端 FoV: `120` -> `+100%` 側
-- 影響度: `dofLensDistortionInfluenceValue`（`0..1`、既定 `0`）
-- LensRenderingPipeline 側の `distortion` は `0` 固定
-- 実際の収差適用は独自最終パスで実施
+- FoV linkage is enabled (`dofLensDistortionFollowsCameraFov = true`)
+- Neutral FoV: `30`
+- Telephoto end FoV: `10` -> `-100%` side
+- Wide-angle end FoV: `120` -> `+100%` side
+- Influence: `dofLensDistortionInfluenceValue` (`0..1`, default `0`)
+- LensRenderingPipeline side `distortion` is fixed at `0`
+- Actual aberration application is performed in a custom final pass
 
-## ポスト補正
+## Post Correction
 
-- `postEffectContrastValue` 既定: `1`
-- `postEffectGammaValue` 既定: `2`
-- ガンマは専用 PostProcess で補正
-- AA は `antialiasEnabledValue` で切替（既定 `true`）
+- `postEffectContrastValue` default: `1`
+- `postEffectGammaValue` default: `2`
+- Gamma is corrected with a dedicated PostProcess
+- AA is switched with `antialiasEnabledValue` (default `true`)
 
-## UI 反映の現状（2026-02-21）
+## UI Reflection Status (2026-02-21)
 
-HTML 側で `dof-row-hidden` により複数項目を非表示運用している。
+Multiple items are hidden on the HTML side using `dof-row-hidden`.
 
-- 非表示: カメラ距離、DoF品質、DoFフォーカス、DoF F-stop、前抑制、焦点距離反転、DoF焦点距離
-- 非表示: コントラスト、収差
-- 表示: ガンマ、収差影響度、レンズブラー、エッジブラー、輪郭線 など
+- Hidden: Camera distance, DoF quality, DoF focus, DoF F-stop, front suppression, focal length inversion, DoF focal length
+- Hidden: Contrast, aberration
+- Shown: Gamma, aberration influence, lens blur, edge blur, contour line, etc.
 
-詳細な UI 項目は `docs/camera-implementation-spec.md` を参照。
+For detailed UI items, refer to `docs/camera-implementation-spec.md`.
 
-## UI/入出力メモ（2026-02-24）
+## UI/Input/Output Notes (2026-02-24)
 
-- ツールバー読込は `ファイル読込` ボタンへ統合済み
-  - 対応: `pmx/pmd/vmd/vpd/mp3/wav/ogg`
-  - VMD は状況とファイル名を見て、`カメラVMD -> モーション` または `モーション -> カメラVMD` の順にフォールバック
-- ドラッグ&ドロップ読込は `UIController.setupFileDrop()` で処理
-  - `pmx/pmd` を先に、次に `vmd/vpd`、次に音源を順次ロード
-  - PNG 連番出力中は読込をブロック
-- Electron 環境差分対応として、ドロップファイルのパスは `preload.ts` の
-  `webUtils.getPathForFile(file)` で解決する
-  - 旧来の `File.path` はフォールバック扱い
-- シェーダー欄は現行UIから撤去（右パネル非表示運用）
-- UI非表示モード開始時に「ESCで戻れる」トーストを表示
+- Toolbar loading is integrated into the `Load File` button
+  - Supported: `pmx/pmd/vmd/vpd/mp3/wav/ogg`
+  - VMD falls back in the order of `camera VMD -> motion` or `motion -> camera VMD` depending on situation and filename
+- Drag & drop loading is handled by `UIController.setupFileDrop()`
+  - Load `pmx/pmd` first, then `vmd/vpd`, then audio in sequence
+  - Loading is blocked during PNG sequence output
+- As Electron environment difference handling, drop file paths are resolved by `webUtils.getPathForFile(file)` in `preload.ts`
+  - Traditional `File.path` is treated as fallback
+- Shader panel has been removed from current UI (right panel hidden operation)
+- When starting UI hidden mode, show a toast that says "press ESC to return"
 
-## 注意点
+## Notes
 
-- `src/mmd-manager.ts` は CP932 系エンコーディングのため、編集時は文字化けに注意
-- 収差は最終段適用なので、Lens 側の歪みパラメータを触っても見た目に反映されない（意図仕様）
+- `src/mmd-manager.ts` is CP932 system encoding, so be careful about character corruption when editing
+- Since aberration is applied at the final stage, touching Lens side distortion parameters does not reflect in appearance (intentional specification)

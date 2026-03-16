@@ -1,114 +1,114 @@
-﻿# 影仕様と実装
+﻿# Shadow Specification and Implementation
 
-このドキュメントは、PMX の影関連仕様と `MMD_modoki` 側の実装方針をまとめたものです。
+This document summarizes PMX shadow-related specifications and `MMD_modoki` implementation policies.
 
-関連:
-- [光・影実装メモ（Toon分離 + フラット光）](./light-shadow-implementation.md)
-- [影品質向上の検討メモ](./shadow-quality-investigation.md)
+Related:
+- [Light/Shadow Implementation Notes (Toon Separation + Flat Light)](./light-shadow-implementation.md)
+- [Shadow Quality Improvement Investigation Notes](./shadow-quality-investigation.md)
 
-## PMX 材質フラグ（影関連）
+## PMX Material Flags (Shadow Related)
 
-PMX の材質フラグには、影に関するビットがあります。
+PMX material flags have bits related to shadows.
 
-- `0x02`: Ground Shadow（地面影）
-- `0x04`: Draw Shadow（自己影用シャドウマップへ投影）
-- `0x08`: Receive Shadow（自己影を受ける）
+- `0x02`: Ground Shadow (ground shadow)
+- `0x04`: Draw Shadow (project to self-shadow shadow map)
+- `0x08`: Receive Shadow (receive self-shadow)
 
-補足:
-- PMX には「他モデルだけに影を落とす / 自己モデルだけに影を落とす」を分ける専用フラグはありません。
-- そのため実運用では、レンダラ側の設計（シャドウマップの作り方）で挙動が決まります。
+Notes:
+- PMX does not have dedicated flags to separate "cast shadow only on other models / cast shadow only on self model".
+- Therefore, in actual operation, behavior is determined by renderer-side design (how shadow maps are created).
 
-## 実装方針
+## Implementation Policy
 
-`src/mmd-manager.ts` の `loadPMX` で、以下の流れで影設定を決定します。
+In `src/mmd-manager.ts`'s `loadPMX`, shadow settings are determined in the following flow.
 
-1. 各モデルメッシュを一律で `shadow caster` に登録  
-2. 各モデルメッシュを一律で `receiveShadows = true` に設定  
-3. 地面も `receiveShadows = true` にして、モデル間/床への影を常時有効化
+1. Register all model meshes uniformly as `shadow caster`
+2. Set all model meshes uniformly to `receiveShadows = true`
+3. Also set ground to `receiveShadows = true` to always enable shadows between models/floor
 
-補足:
-- 現在のディレクショナルライト影は、PMX 材質フラグで制限しません。
-- 目的は「他モデル間」「床板ポリ」への影を確実に出すことです。
-- `preserveSerializationData: true` は loader 側に残していますが、現行の影判定には使っていません。
+Notes:
+- Current directional light shadows are not limited by PMX material flags.
+- The purpose is to reliably cast shadows on "other models" and "floor polygons".
+- `preserveSerializationData: true` remains on the loader side, but is not used in current shadow determination.
 
-## 実装ポイント
+## Implementation Points
 
-- モデル読込時に全メッシュへ
+- When loading models, for all meshes
   - `shadowGenerator.addShadowCaster(...)`
   - `mesh.receiveShadows = true`
-- 地面へ
+- For ground
   - `ground.receiveShadows = true`
 
-## 影色（トゥーン色）
+## Shadow Color (Toon Color)
 
-- モデル材質の `toonTexture` は PMX ローダーが設定した値をそのまま使用します。
-- 以前のような共通グレースケール ramp への上書きは行いません。
-- 読込後は `toonTexture` のサンプリングだけを `BILINEAR` にして、境界のジャギーを軽減します。
-- `toonTexture` を持たない材質は、babylon-mmd の既定挙動（`ignoreDiffuseWhenToonTextureIsNull`）に従います。
+- Model material's `toonTexture` uses the value set by the PMX loader as is.
+- Overwriting to a common grayscale ramp as before is not performed.
+- After loading, only `toonTexture` sampling is set to `BILINEAR` to reduce boundary jaggedness.
+- Materials without `toonTexture` follow babylon-mmd's default behavior (`ignoreDiffuseWhenToonTextureIsNull`).
 
-## シャドウ生成設定
+## Shadow Generation Settings
 
-ディレクショナルライト + `ShadowGenerator` の設定は次の方針です。
+Directional light + `ShadowGenerator` settings follow the following policy.
 
-- マップ解像度: `min(8192, GPU上限)`
-- フィルタ: `PCF`（`usePercentageCloserFiltering = true`）
-- 品質: `QUALITY_HIGH`
-- 補間: `Contact Hardening`（`useContactHardeningShadow = true`）
+- Map resolution: `min(8192, GPU limit)`
+- Filter: `PCF` (`usePercentageCloserFiltering = true`)
+- Quality: `QUALITY_HIGH`
+- Interpolation: `Contact Hardening` (`useContactHardeningShadow = true`)
   - `contactHardeningLightSizeUVRatio = 0.035`
-- 接地感調整
+- Ground contact adjustment
   - `bias = 0.00015`
   - `normalBias = 0.0006`
   - `frustumEdgeFalloff = 0.2`
-- 透明材質対応
+- Transparent material support
   - `transparencyShadow = true`
   - `enableSoftTransparentShadow = true`
   - `useOpacityTextureForTransparentShadow = true`
-- 影の投影範囲（地面全体カバー）
+- Shadow projection range (cover entire ground)
   - `dirLight.shadowFrustumSize = 220`
   - `dirLight.shadowMinZ = 1`
   - `dirLight.shadowMaxZ = max(500, shadowFrustumSize * 6)`
   - `dirLight.autoUpdateExtends = true`
   - `dirLight.autoCalcShadowZBounds = true`
-  - 光源位置距離: `setLightDirection` 内 `dist = max(90, shadowFrustumSize * 0.35)`
+  - Light source position distance: `dist = max(90, shadowFrustumSize * 0.35)` in `setLightDirection`
 
-## UI との関係
+## Relationship with UI
 
-影設定は、材質フラグとは別に照明 UI で制御します。
+Shadow settings are controlled in the lighting UI separately from material flags.
 
 - `index.html`
-  - `#light-shadow`（影の濃さ、現状は非表示）
-  - `#light-shadow-frustum-size`（影範囲）
-  - `#light-shadow-softness`（境界幅 / contact hardening）
+  - `#light-shadow` (shadow darkness, currently hidden)
+  - `#light-shadow-frustum-size` (shadow range)
+  - `#light-shadow-softness` (boundary width / contact hardening)
 - `src/ui-controller.ts`
-  - 起動時に `setShadowEnabled(true)` を適用（UI上は常時ON）
-  - `shadowFrustumSize` の更新
-  - `shadowEdgeSoftness` の更新
+  - Apply `setShadowEnabled(true)` at startup (always ON in UI)
+  - Update `shadowFrustumSize`
+  - Update `shadowEdgeSoftness`
 
-現在は UI 上では常時 ON で運用し、主に影範囲と境界幅を調整します。
-`shadowDarkness` は内部値としては保持しますが、既定値 `0.0` で UI からは隠しています。
+Currently, it is always ON in UI operation, and mainly shadow range and boundary width are adjusted.
+`shadowDarkness` is held as an internal value, but is hidden from UI with default `0.0`.
 
-照明欄の初期値:
+Lighting panel initial values:
 
-- 方位角: `20`
-- 仰角: `-50`
-- 光の強さ: `0.8`
-- 環境光: `0.2`
-- 影の濃さ: `0.0`（UI非表示）
-- 影範囲: `220`
+- Azimuth: `20`
+- Elevation: `-50`
+- Light intensity: `0.8`
+- Ambient light: `0.2`
+- Shadow darkness: `0.0` (UI hidden)
+- Shadow range: `220`
 
-照明欄の制約:
+Lighting panel constraints:
 
-- `shadowFrustumSize` の UI 上限は `6000`
-- 範囲を広げるほど影密度は下がるため、必要以上に大きくしない方が見た目は安定しやすい
+- UI upper limit for `shadowFrustumSize` is `6000`
+- As the range is expanded, shadow density decreases, so it is easier for appearance to be stable if not made larger than necessary
 
-## 既知の制限
+## Known Limitations
 
-- 現在は「全メッシュが影を落とす/受ける」方針です。  
-  PMX 材質フラグによる細かな ON/OFF は使っていません。
-- 「自己モデルにだけ影」「他モデルにだけ影」は PMX 材質フラグだけでは表現できません。
-- Babylon.js の shadow caster 登録はメッシュ単位です。  
-  そのため同一メッシュ内で材質ごとに完全分離された caster 制御はできません。
-- ただし `babylon-mmd` 既定の `optimizeSubmeshes=true` では材質ごとにメッシュ分割されるため、
-  実用上は材質単位に近い挙動になります。
-- 影範囲を広げるほど、同じ解像度でも 1 ピクセルあたりの密度は下がります。  
-  必要に応じて `shadowFrustumSize` と解像度のトレードオフ調整が必要です。
+- Currently, the policy is "all meshes cast/receive shadows".
+  Fine-grained ON/OFF by PMX material flags is not used.
+- "Cast shadow only on self model" and "Cast shadow only on other models" cannot be expressed with PMX material flags alone.
+- Babylon.js shadow caster registration is per mesh.
+  Therefore, completely separated caster control per material within the same mesh is not possible.
+- However, with babylon-mmd's default `optimizeSubmeshes=true`, meshes are split per material,
+  so in practice it behaves close to per-material.
+- As the shadow range is expanded, density per pixel decreases even at the same resolution.
+  Trade-off adjustment between `shadowFrustumSize` and resolution is necessary as needed.

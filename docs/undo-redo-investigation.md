@@ -1,65 +1,65 @@
-# Undo / Redo 検討メモ
+# Undo / Redo Investigation Notes
 
-更新日: 2026-03-10
-対象:
+Updated: 2026-03-10
+Target:
 - `src/ui-controller.ts`
 - `src/mmd-manager.ts`
 - `src/timeline.ts`
 
-## 1. 目的
+## 1. Purpose
 
-- 現行 MMD に近い「元に戻す / やり直し」を段階導入できるか検討する。
-- ライブラリ導入より先に、このコードベースで現実的な実装単位を整理する。
+- Investigate whether "undo/redo" close to current MMD can be introduced in stages.
+- Before introducing libraries, organize realistic implementation units in this codebase.
 
-## 2. 前提
+## 2. Premise
 
-- 現状は `UIController` から `MmdManager` を直接呼ぶ編集が多く、履歴を一括で捕まえる入口はない。
-- タイムラインのキーフレーム配列は immutable 風に差し替える実装が多く、履歴管理の土台には使いやすい。
-- 一方で、実際の編集結果は Babylon.js のランタイム状態、source animation、タイムライン表示の複数層に反映される。
+- Currently, many edits directly call `MmdManager` from `UIController`, and there is no single entry point to capture history in bulk.
+- Timeline keyframe arrays have many implementations that replace in immutable style, making them easy to use as foundation for history management.
+- On the other hand, actual edit results are reflected to multiple layers: Babylon.js runtime state, source animation, and timeline display.
 
-関連:
+Related:
 - [timeline-spec.md](./timeline-spec.md)
 - [keyframe-storage-spec.md](./keyframe-storage-spec.md)
 - [edit-state-machine.md](./edit-state-machine.md)
 
-## 3. 難しさの本体
+## 3. Core of Difficulty
 
-- React があっても、状態更新が reducer/store に集約されていなければ undo/redo は簡単にならない。
-- SQLite WASM は保存・復元には向くが、毎操作の即時巻き戻しを担う主系統としては大がかり。
-- Undo / Redo の難しさは UI 技術ではなく、`1操作をどう定義するか` と `どこで履歴を積むか` にある。
+- Even with React, undo/redo doesn't become simple unless state updates are aggregated to reducer/store.
+- SQLite WASM is not suitable for save/restore per operation, and is too heavy as main system to bear immediate rollback.
+- Difficulty of Undo / Redo is not UI technology, but "how to define 1 operation" and "where to stack history".
 
-## 4. 候補方式
+## 4. Approach Methods
 
-### 4-1. 全体スナップショット方式
+### 4-1. Overall Snapshot Method
 
-- 内容: プロジェクト状態全体を操作ごとに保存して戻す。
-- 利点: 実装は分かりやすい。
-- 欠点: モデル数やキーフレーム数が増えると重い。連続操作に弱い。
-- 判断: 初期検証なら可能だが、本命にはしない。
+- Content: Save entire project state per operation and restore.
+- Advantage: Implementation is easy to understand.
+- Disadvantage: Becomes heavy as model count and keyframe count increase. Weak for continuous operations.
+- Judgment: Possible for initial verification, but not for production.
 
-### 4-2. 差分履歴方式
+### 4-2. Difference History Method
 
-- 内容: 編集前後の最小差分だけを履歴へ積む。
-- 利点: 実運用向き。タイムライン編集と相性が良い。
-- 欠点: 差分型の設計が必要。対象操作ごとに undo 適用処理を書く必要がある。
-- 判断: 本命候補。
+- Content: Stack only minimum differences before/after edit.
+- Advantage: Suited for practical operation. Good compatibility with timeline editing.
+- Disadvantage: Difference type design needed. Must write undo application processing per target operation.
+- Judgment: Production candidate.
 
-### 4-3. Command 方式
+### 4-3. Command Pattern Method
 
-- 内容: `do()` / `undo()` を持つ操作オブジェクトを積む。
-- 利点: 何を 1 操作と見なすかが明確。段階導入しやすい。
-- 欠点: 操作種別が増えるほど実装量が増える。
-- 判断: 差分履歴方式と組み合わせるのが現実的。
+- Content: Stack operation objects holding `do()` / `undo()`.
+- Advantage: Clear what counts as 1 operation. Easy to introduce in stages.
+- Disadvantage: Implementation amount increases as operation types increase.
+- Judgment: Realistic to combine with difference history method.
 
-## 5. 採用方針案
+## 5. Adoption Policy Proposal
 
-- `HistoryManager` を 1 つ追加する。
-- 履歴 1 件は `label` と `undo` / `redo` を持つ軽い command とする。
-- command の中身は必要に応じて最小差分を保持する。
-- 連続入力は 1 件にまとめる。
-  - 例: スライダードラッグ中は履歴を積まず、確定時だけ積む。
+- Add 1 `HistoryManager`.
+- 1 history item is lightweight command holding `label` and `undo` / `redo`.
+- Command internals hold minimum differences as needed.
+- Combine continuous inputs into 1 item.
+  - Example: During slider drag, don't stack history, only stack on commit.
 
-イメージ:
+Image:
 
 ```ts
 type HistoryEntry = {
@@ -70,79 +70,79 @@ type HistoryEntry = {
 };
 ```
 
-## 6. 最初に対象にする操作
+## 6. Operations to Target First
 
-優先度順:
+Priority order:
 
-- キーフレーム追加
-- キーフレーム削除
-- キーフレームの `±1f` 移動
-- キー値の数値変更
+- Keyframe add
+- Keyframe delete
+- Keyframe `±1f` move
+- Key value numeric change
 
-理由:
+Reasons:
 
-- ユーザー影響が大きい。
-- 現行実装でも操作入口が比較的追いやすい。
-- `現行 MMD っぽい` と感じられる最低ラインに近い。
+- Large user impact.
+- Operation entry points relatively easy to track even in current implementation.
+- Close to minimum line to feel "current MMD-like".
 
-## 7. 後回しにする操作
+## 7. Operations to Exclude from Restoration
 
-- プロジェクト読込 / 保存
-- モデル読込 / 削除
-- VMD / VPD / カメラ VMD 読込
-- 再生 / 停止 / シーク
-- ポストエフェクト全般
-- 配布や起動環境に依存する操作
+- Project load/save
+- Model load/delete
+- VMD / VPD / camera VMD load
+- Playback/stop/seek
+- Post effects in general
+- Operations dependent on distribution or startup environment
 
-これらは履歴対象に含めると境界が曖昧になりやすいため、初期段階では外す。
+Including these in history targets makes boundaries ambiguous, so exclude in initial stage.
 
-## 8. 段階導入案
+## 8. Stage Introduction Proposal
 
 ### Phase 1
 
-- タイムラインのキー追加 / 削除 / 移動だけ対応
-- `Ctrl + Z` / `Ctrl + Y` を有効化
-- 編集 1 件ごとにラベル付き履歴を積む
+- Support only timeline key add/delete/move
+- Enable `Ctrl + Z` / `Ctrl + Y`
+- Stack labeled history per edit
 
 ### Phase 2
 
-- キー値変更を履歴化
-- 補間変更を履歴化
-- 複数フレーム操作に対応
+- History key value changes
+- History interpolation changes
+- Support multi-frame operations
 
 ### Phase 3
 
-- ボーン操作
-- モーフ操作
-- カメラ操作
-- アクセサリ操作
+- Bone operations
+- Morph operations
+- Camera operations
+- Accessory operations
 
-## 9. 実装時の注意
+## 9. Implementation Notes
 
-- Babylon ランタイム状態だけ戻しても不十分で、source animation とタイムライン表示も整合させる必要がある。
-- VMD 読込や VPD 適用は複数トラック同時更新なので、履歴単位を大きくする必要がある。
-- 連続入力をそのまま履歴化するとスタックがすぐ膨らむ。
-- 再生中編集、物理 ON 中の編集、カメラ対象編集は副作用を持つため別途確認が必要。
+- Even if only Babylon runtime state is restored, need to align source animation and timeline display as well.
+- VMD load and VPD application update multiple tracks simultaneously, so need to make history units larger.
+- If continuous inputs are history-ized as is, stack expands immediately.
+- Playback editing, editing during physics ON, camera target editing have side effects, so separate confirmation needed.
 
-## 10. SQLite WASM を使う案について
+## 10. About Using SQLite WASM Proposal
 
-- 技術的には可能だが、本件の主解決策にはしない。
-- SQLite は autosave、作業ログ、クラッシュ復元には向く。
-- Undo / Redo の主系統はメモリ上の履歴スタックで持つ方が自然。
+- Technically possible, but not main solution for this case.
+- SQLite is suited for autosave, work logs, crash recovery.
+- Natural for Undo / Redo main system to hold history stack on memory.
 
-結論:
+Conclusion:
 
-- `Undo / Redo の核 = インメモリ履歴`
-- `SQLite = 補助保存先`
+- `Undo / Redo core = in-memory history`
+- `SQLite = auxiliary save destination`
 
-## 11. 結論
+## 11. Conclusion
 
-- 現時点で大きいライブラリや DB を先に入れる必要はない。
-- まずは `HistoryManager + 軽い command + 最小差分` でタイムライン編集に限定して入れる。
-- 現行 MMD に近い使用感を目指すなら、Phase 1 の時点でかなり効果がある。
+- No need to introduce large libraries or DB first.
+- First introduce limited to timeline editing with `HistoryManager + lightweight command + minimum difference`.
+- If aiming for usage feeling close to current MMD, quite effective at Phase 1 points.
 
-## 12. 保留事項
+## 12. Reserved Items
 
-- Redo ショートカットを `Ctrl + Y` にするか、MMD 寄り挙動に寄せるか
-- 同一フレーム内の複数変更を 1 件としてまとめる基準
-- VMD 追記読込や将来の複数 VMD マージと履歴の関係整理
+- Whether to make Redo shortcut `Ctrl + Y` or align to MMD actual behavior
+- Criteria to summarize multiple changes within same frame as 1 item
+- Organize relationship with history for VMD additional load and future multiple VMD merge

@@ -1,114 +1,114 @@
-﻿# トラブルシュート
+﻿# Troubleshooting
 
-## `Cannot find module 'supports-color'` が出る
+## `Cannot find module 'supports-color'` error
 
-### 症状
+### Symptoms
 
-`npm start` 実行時に `chalk` 経由で `supports-color` が見つからない。
+`supports-color` is not found via `chalk` when running `npm start`.
 
-### 原因
+### Cause
 
-`package-lock.json` には依存があるが、`node_modules` が不完全な状態。
+There are dependencies in `package-lock.json`, but `node_modules` is in an incomplete state.
 
-移動元フォルダの `node_modules` をそのまま使った場合や、途中で壊れた依存ツリーで起きやすいです。
+This is likely to occur when using `node_modules` from the moved folder as is, or when the dependency tree is broken midway.
 
-### 対処
+### Solution
 
 ```bash
 npm ci
 npm start
 ```
 
-`npm ci` で lockfile どおりに依存を再構築してください。
+Rebuild dependencies according to the lockfile with `npm ci`.
 
-## Linux 版 zip が起動しない
+## Linux version zip won't start
 
-### 症状
+### Symptoms
 
-- Ubuntu 24.04 などで起動直後に abort する
-- コンソールに `chrome-sandbox` や `setuid sandbox` 関連のエラーが出る
+- Aborts immediately after startup on Ubuntu 24.04 etc.
+- Console shows `chrome-sandbox` or `setuid sandbox` related errors
 
-### 原因
+### Cause
 
-Linux の zip 配布では `chrome-sandbox` の所有者や `4755` 属性をそのまま維持しづらく、Electron/Chromium のサンドボックス要件を満たせないことがあります。
+In Linux zip distribution, it is difficult to maintain the owner or `4755` attribute of `chrome-sandbox` as is, and Electron/Chromium sandbox requirements may not be met.
 
-### 対処
+### Solution
 
-- 現在の packaged build は Linux 限定で `--no-sandbox` と `--disable-setuid-sandbox` を付けて起動する暫定対応を入れています。
-- それでも起動しない場合は、ターミナルから起動して追加のエラーログを確認してください。
-- 恒久対応としては AppImage / Flatpak など、Linux 向け配布形式の見直しを検討しています。
+- The current packaged build includes a temporary measure to start with `--no-sandbox` and `--disable-setuid-sandbox` for Linux only.
+- If it still doesn't start, start from the terminal and check additional error logs.
+- As a permanent solution, we are considering reviewing Linux distribution formats such as AppImage / Flatpak.
 
-## 起動はするがモデルが読めない
+## App starts but cannot load models
 
-確認ポイント:
+Check points:
 
-- `webSecurity: false` が `src/main.ts` に残っているか
-- PMX とテクスチャの相対配置が崩れていないか
-- 読み込みパスに日本語・特殊文字が多い場合は一旦短いパスで試す
+- Is `webSecurity: false` remaining in `src/main.ts`?
+- Is the relative placement of PMX and textures broken?
+- If the load path has many Japanese/special characters, try with a short path for now
 
-## Xアクセサリーが白黒/市松になる
+## X accessories become black and white/checkered
 
-### 症状
+### Symptoms
 
-- `.x` は表示されるがテクスチャが貼られない
-- コンソールに `Texture not found` や `ERR_FILE_NOT_FOUND` が出る
+- `.x` is displayed but textures are not applied
+- Console shows `Texture not found` or `ERR_FILE_NOT_FOUND`
 
-### 原因
+### Cause
 
-- `.x` 内の `TextureFilename` と実ファイル配置が一致していない
-- 参照拡張子（`.bmp` など）が実体と違う
+- `TextureFilename` in `.x` does not match the actual file placement
+- Referenced extension (`.bmp` etc.) is different from the actual file
 
-### 対処
+### Solution
 
-1. `.x` とテクスチャの相対パス配置を確認する
-2. テクスチャファイル名の大文字/小文字・拡張子を確認する
-3. 可能なら `.png` へ変換して同名ベースで配置する
+1. Check the relative path placement of `.x` and textures
+2. Check the uppercase/lowercase and extension of texture file names
+3. If possible, convert to `.png` and place with the same base name
 
-## Lint warning が多い
+## Many Lint warnings
 
-現状のルールでは warning を許容しています。
+Current rules allow warnings.
 
 ```bash
 npm run lint
 ```
 
-`error` が 0 であれば開発は継続可能です。
+Development can continue if `error` is 0.
 
-## 上パネルが `物理不可` のままになる
+## Top panel remains `Physics unavailable`
 
-### 症状
+### Symptoms
 
-- 物理ボタンが `物理不可` のまま
-- コンソールに `expected magic word 00 61 73 6d` など wasm 読み込みエラーが出る
+- Physics button remains `Physics unavailable`
+- Console shows wasm loading errors such as `expected magic word 00 61 73 6d`
 
-### 代表的な原因
+### Typical causes
 
-- Bullet 用 `spr/index_bg.wasm` と Ammo 用 `ammo.wasm.wasm` の両方が初期化失敗している
-- Dev サーバーのキャッシュで古いバンドルを参照している
-- wasm URL 解決先に wasm ではなく HTML が返っている
+- Both Bullet's `spr/index_bg.wasm` and Ammo's `ammo.wasm.wasm` initialization failed
+- Dev server cache is referencing old bundles
+- wasm URL resolution returns HTML instead of wasm
 
-### 対処
+### Solution
 
-1. 開発サーバーを再起動する（`electron-forge start` を再起動）
-2. それでも直らない場合は `node_modules/.vite` を消して再起動する
-3. コンソールに `Bullet physics initialization failed` や `Physics initialization failed` が出ていないか確認する
+1. Restart the development server (restart `electron-forge start`)
+2. If it still doesn't work, delete `node_modules/.vite` and restart
+3. Check if console shows `Bullet physics initialization failed` or `Physics initialization failed`
 
-現実装では Bullet backend を先に初期化し、失敗時のみ Ammo backend へ fallback します。
+Current implementation initializes Bullet backend first, and falls back to Ammo backend only on failure.
 
-## 上パネルが `Ammo` になる
+## Top panel shows `Ammo`
 
-### 症状
+### Symptoms
 
-- アプリは動くが、上パネルの backend バッジが `Ammo`
-- 期待していた `Bullet` にならない
+- App works but top panel backend badge shows `Ammo`
+- Doesn't become the expected `Bullet`
 
-### 意味
+### Meaning
 
-Bullet backend の初期化に失敗し、Ammo fallback で起動しています。
+Bullet backend initialization failed and started with Ammo fallback.
 
-### 対処
+### Solution
 
-1. コンソールに `Bullet physics initialization failed` が出ていないか確認する
-2. Electron アプリを完全終了して再起動する
-3. それでも直らない場合は `node_modules/.vite` を消して再起動する
-4. `spr/index_bg.wasm` の解決失敗や `object is not extensible` など、Bullet 初期化例外の内容を確認する
+1. Check if console shows `Bullet physics initialization failed`
+2. Completely close and restart the Electron app
+3. If it still doesn't work, delete `node_modules/.vite` and restart
+4. Check Bullet initialization exception contents such as `spr/index_bg.wasm` resolution failure or `object is not extensible`

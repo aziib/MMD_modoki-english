@@ -1,149 +1,149 @@
-# WebM 出力 現行仕様 / 実装
-更新日: 2026-03-13
+# WebM Output Current Specification / Implementation
+Updated: 2026-03-13
 
-## 1. 概要
-- `出力 > WebM動画` から `.webm` を保存する
-- 出力 fps は `24 / 30 / 60`
-- `音声あり` を ON にすると、読み込み済み音声を mux する
-- codec 選択 UI は通常表示しない
-- 内部既定 codec は `VP9`
-- 出力中は main UI を lock し、busy overlay に簡略進捗を表示する
+## 1. Overview
+- Save `.webm` from `Output > WebM video`
+- Output fps is `24 / 30 / 60`
+- When `With audio` is ON, mux loaded audio
+- Codec selection UI is normally not shown
+- Internal default codec is `VP9`
+- During output, lock main UI and show simplified progress in busy overlay
 
 ## 2. UI
-対象ファイル:
+Target files:
 
 - `index.html`
 - `src/ui-controller.ts`
 - `src/index.css`
 
-出力欄の現行項目:
+Current items in output panel:
 
-- 比率
-- 長辺
-- 幅 / 高さ
+- Aspect ratio
+- Long side
+- Width / Height
 - FPS
-- `音声あり`
-- `PNG画像`
-- `WebM動画`
+- `With audio`
+- `PNG image`
+- `WebM video`
 
-補足:
+Notes:
 
-- `PNG Seq` は UI から外している
-- codec 選択 UI も外している
-- 新規既定値では内部的に `VP9` を使う
+- `PNG Seq` is removed from UI
+- Codec selection UI is also removed
+- New defaults use `VP9` internally
 
-## 3. タイムライン基準
-MMD タイムラインは 30fps 基準で扱う。
+## 3. Timeline Basis
+MMD timeline is handled on 30fps basis.
 
 - `timelineFrameCount = endFrame - startFrame + 1`
 - `totalOutputFrames = round((timelineFrameCount / 30) * outputFps)`
 
-これにより:
+This means:
 
-- 30fps 出力では timeline 1 frame = video 1 frame
-- 60fps 出力ではフレーム数だけ増え、再生時間は維持する
-- 音声付き出力でも video / audio の長さを揃える
+- For 30fps output, timeline 1 frame = video 1 frame
+- For 60fps output, frame count increases but playback time is maintained
+- For audio-enabled output, align video/audio length
 
-## 4. 構成
+## 4. Composition
 
 ### Main UI renderer
-対象:
+Target:
 
 - `src/ui-controller.ts`
 
-役割:
+Role:
 
-- 出力 UI の入力を `ProjectOutputState` に保存
-- `WebmExportRequest` を組み立てて main process へ送る
-- 背景出力 lock と busy overlay を管理する
+- Save output UI input to `ProjectOutputState`
+- Build `WebmExportRequest` and send to main process
+- Manage background export lock and busy overlay
 
 ### Main process
-対象:
+Target:
 
 - `src/main.ts`
 - `src/preload.ts`
 - `src/types.ts`
 
-役割:
+Role:
 
-- WebM export job の開始 / 受付
-- hidden exporter window の生成
-- progress / state の owner window への中継
-- streamed save
-- 完了時の exporter window close と UI lock 解放
+- Start/accept WebM export job
+- Generate hidden exporter window
+- Relay progress/state to owner window
+- Streamed save
+- Close exporter window and release UI lock on completion
 
 ### Exporter renderer
-対象:
+Target:
 
 - `src/renderer.ts`
 - `src/webm-exporter.ts`
 
-役割:
+Role:
 
-- hidden window 上に fresh な `MmdManager` を作る
-- project state を isolated scene へ import する
-- frame capture / encode / save を実行する
-- 完了時に `finishWebmExportJob(jobId)` を main へ返す
+- Create fresh `MmdManager` on hidden window
+- Import project state to isolated scene
+- Execute frame capture / encode / save
+- Return `finishWebmExportJob(jobId)` to main on completion
 
-## 5. 出力手順
-1. hidden exporter window で `MmdManager.create(canvas)`
+## 5. Output Procedure
+1. `MmdManager.create(canvas)` in hidden exporter window
 2. `importProjectState(project, { forExport: true })`
 3. `setTimelineTarget("camera")`
 4. `pause()`, `setAutoRenderEnabled(false)`
 5. `seekTo(startFrame)`
-6. codec / bitrate を決定
-7. 必要なら音声を decode / slice
-8. `Output + WebMOutputFormat + StreamTarget` を生成
-9. フレームごとに render / capture / encode
+6. Determine codec / bitrate
+7. Decode / slice audio if necessary
+8. Generate `Output + WebMOutputFormat + StreamTarget`
+9. Render / capture / encode per frame
 10. `close -> finalize -> finishWebmExportJob`
 
-## 6. capture 経路
-現行は安定性優先で以下を使う。
+## 6. Capture Path
+Currently uses the following for stability priority.
 
 - reusable `RenderTargetTexture`
 - `readPixels()`
 - `VideoSample(RGBA)`
 
-不採用:
+Not adopted:
 
 - `canvas -> VideoSample`
 - `ImageBitmap -> 2D canvas -> VideoSample`
 
-これらは黒画が出る環境があったため、現状は使わない。
+These had environments where black frames appeared, so currently not used.
 
-## 7. 音声トラック
-対象:
+## 7. Audio Track
+Target:
 
 - `src/webm-exporter.ts`
 
-仕様:
+Specification:
 
-- `音声あり` ON かつ音声読込済みのときだけ mux する
-- exporter scene 側では音を鳴らさない
-- 元音声ファイルを別途 decode して使う
+- Only mux when `With audio` is ON and audio is loaded
+- Do not play sound on exporter scene side
+- Decode original audio file separately and use
 
-音声 codec:
+Audio codec:
 
-- 優先: `opus`
-- fallback: `vorbis`
+- Priority: `opus`
+- Fallback: `vorbis`
 
-音声 bitrate:
+Audio bitrate:
 
 - mono: `128 kbps`
-- stereo 以上: `192 kbps`
+- stereo and above: `192 kbps`
 
 ## 8. codec / bitrate
-対象:
+Target:
 
 - `src/webm-exporter.ts`
 
-動画 codec:
+Video codec:
 
-- 内部既定値: `VP9`
-- 実行時は `prefer-hardware` を優先
-- 非対応時は `no-preference` へ fallback
+- Internal default: `VP9`
+- At runtime, prioritize `prefer-hardware`
+- Fallback to `no-preference` when not supported
 
-既定 bitrate:
+Default bitrate:
 
 - 1080p30: `8 Mbps`
 - 1080p60: `12 Mbps`
@@ -152,29 +152,29 @@ MMD タイムラインは 30fps 基準で扱う。
 - 4K30: `35 Mbps`
 - 4K60: `53 Mbps`
 
-補足:
+Notes:
 
-- `keyFrameInterval` は現状 `5`
-- この値はまだ調整中
+- `keyFrameInterval` is currently `5`
+- This value is still being adjusted
 
-## 9. 保存方式
-対象:
+## 9. Save Method
+Target:
 
 - `src/webm-exporter.ts`
 - `src/main.ts`
 
-保存は streamed save を使う。
+Save uses streamed save.
 
-1. exporter が `beginWebmStreamSave(filePath)` を呼ぶ
-2. `StreamTarget` から chunk が出る
-3. `writeWebmStreamChunk(saveId, bytes, position)` で main process へ渡す
-4. close 後に `finishWebmStreamSave(saveId)`
-5. エラー時は `cancelWebmStreamSave(saveId)`
+1. Exporter calls `beginWebmStreamSave(filePath)`
+2. Chunks come out from `StreamTarget`
+3. Pass to main process with `writeWebmStreamChunk(saveId, bytes, position)`
+4. After close, `finishWebmStreamSave(saveId)`
+5. On error, `cancelWebmStreamSave(saveId)`
 
-完成した WebM 全体を最後に一括 IPC 転送しないため、完了時の stall を減らせる。
+Since completed WebM is not transferred in bulk IPC at the end, stall at completion is reduced.
 
-## 10. 進捗表示
-対象:
+## 10. Progress Display
+Target:
 
 - `src/renderer.ts`
 - `src/ui-controller.ts`
@@ -192,20 +192,20 @@ phase:
 - `completed`
 - `failed`
 
-UI では簡略表示のみ行う。
+UI only shows simplified display.
 
 - phase
 - `encoded / total`
 - current frame
 
-詳細な計測値や内部ログは通常 UI には出さない。
+Detailed measurement values and internal logs are normally not output to UI.
 
-## 11. 初動最適化
-- `importProjectState(..., { forExport: true })` を使う
-- `waitForAnimationFrames(3)` は `1` に縮小
-- export 用 import では active model 切替由来の不要な UI 同期を減らす
+## 11. Startup Optimization
+- Use `importProjectState(..., { forExport: true })`
+- Reduce `waitForAnimationFrames(3)` to `1`
+- Reduce unnecessary UI synchronization from active model switching in export import
 
-## 12. 既知の制約
-- capture は `readPixels()` 依存なので、まだ高速化余地がある
-- HDR 出力ではない
-- codec UI は隠しているが、内部選択は `VP9` 前提
+## 12. Known Constraints
+- Capture depends on `readPixels()`, so there is still room for speed improvement
+- Not HDR output
+- Codec UI is hidden, but internal selection assumes `VP9`

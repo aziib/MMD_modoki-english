@@ -1,73 +1,73 @@
-# カメラVMD対応メモ
+# Camera VMD Support Notes
 
-このドキュメントは、カメラ用 VMD の読み込み実装についてまとめたものです。  
-対象コードは主に `src/mmd-manager.ts` と `src/ui-controller.ts` です。
+This document summarizes the implementation of loading VMD for camera use.  
+Target code is mainly `src/mmd-manager.ts` and `src/ui-controller.ts`.
 
-## 目的
+## Purpose
 
-- カメラモーション入り VMD（拡張子 `.vmd`）を読み込んで再生する
-- 既存のモデルモーション再生フローと同じタイムラインに同期させる
-- 既存 UI（下パネルのカメラフェーダー）と共存させる
+- Load VMD containing camera motion (extension `.vmd`) and play
+- Synchronize to same timeline as existing model motion playback flow
+- Coexist with existing UI (camera fader in bottom panel)
 
-## 実装方針
+## Implementation Policy
 
-- babylon-mmd の `MmdCamera` を内部で生成し、`MmdRuntime` に `addAnimatable` で登録
-- カメラVMD読込時は `VmdLoader.loadAsync` の結果から `cameraTrack` を使って `MmdCamera` に runtime animation を設定
-- 毎フレーム、`MmdCamera` の状態を表示用 `ArcRotateCamera` へ同期して描画
+- Generate `MmdCamera` from babylon-mmd internally and register to `MmdRuntime` with `addAnimatable`
+- When loading camera VMD, use `cameraTrack` from `VmdLoader.loadAsync` result to set runtime animation to `MmdCamera`
+- Every frame, sync `MmdCamera` state to display-use `ArcRotateCamera` and draw
 
-この構成により、babylon-mmd 標準のカメラ補間を使いつつ、UI側はこれまで通り `ArcRotateCamera` を前提に扱えます。
+With this composition, can use babylon-mmd standard camera interpolation while UI side continues to handle assuming `ArcRotateCamera`.
 
-## 読み込みフロー
+## Load Flow
 
-1. 上部ツールバー `カメラVMD` ボタンまたは `Ctrl + Shift + M` でファイル選択
-2. `UIController.loadCameraVMD()` が `MmdManager.loadCameraVMD(filePath)` を呼ぶ
-3. `window.electronAPI.readBinaryFile` でバイナリ読み込み
-4. Blob URL 化して `VmdLoader.loadAsync("cameraMotion", blobUrl)` 実行
-5. `cameraTrack.frameNumbers.length` が 0 ならエラー扱い
-6. 既存カメラアニメがあれば破棄して差し替え
-7. `mmdRuntime.seekAnimation(0, true)` で先頭へ移動
-8. `onCameraMotionLoaded` を通知して UI 表示更新
+1. File selection with top toolbar `Camera VMD` button or `Ctrl + Shift + M`
+2. `UIController.loadCameraVMD()` calls `MmdManager.loadCameraVMD(filePath)`
+3. Binary load with `window.electronAPI.readBinaryFile`
+4. Blob URL conversion and execute `VmdLoader.loadAsync("cameraMotion", blobUrl)`
+5. If `cameraTrack.frameNumbers.length` is 0, treat as error
+6. If existing camera animation exists, dispose and replace
+7. Move to head with `mmdRuntime.seekAnimation(0, true)`
+8. Notify `onCameraMotionLoaded` and update UI display
 
-## 同期の仕組み
+## Synchronization Mechanism
 
-- `MmdManager` は内部に2種類のカメラを持ちます
-  - 表示用: `ArcRotateCamera`（ユーザー操作/UI連動）
-  - 評価用: `MmdCamera`（VMDカメラキー補間）
+- `MmdManager` holds 2 types of cameras internally
+  - For display: `ArcRotateCamera` (user operation/UI linkage)
+  - For evaluation: `MmdCamera` (VMD camera key interpolation)
 
-- 2方向の同期を行います
-  - UI操作時: `ArcRotateCamera -> MmdCamera`
-  - 再生時: `MmdCamera -> ArcRotateCamera`（`onBeforeRenderObservable`）
+- Synchronize in 2 directions
+  - On UI operation: `ArcRotateCamera -> MmdCamera`
+  - On playback: `MmdCamera -> ArcRotateCamera` (`onBeforeRenderObservable`)
 
-これで、VMD再生中でも画面表示は常に `ArcRotateCamera` 側に反映されます。
+With this, screen display always reflects on `ArcRotateCamera` side even during VMD playback.
 
-## 主要API
+## Main APIs
 
 - `loadCameraVMD(filePath): Promise<MotionInfo | null>`
 - `onCameraMotionLoaded: (info: MotionInfo) => void`
 - `setCameraPosition / setCameraRotation / setCameraTarget / setCameraFov`
-  - いずれも UI 手動操作時に `MmdCamera` へ値を同期
+  - All sync values to `MmdCamera` on UI manual operation
 
-## UI仕様
+## UI Specification
 
-- 上パネル:
-  - `カメラVMD` ボタンを追加
-- ショートカット:
-  - `Ctrl + Shift + M`: カメラVMD読込
-- ロード成功時:
-  - ステータス表示: `Camera motion loaded`
-  - トースト表示: `Loaded camera motion: <name>`
-- タイムライン:
-  - `カメラ` キーフレームを別レーンで表示
-  - モデルVMDのボーン/モーフトラックと同時に表示される
+- Top panel:
+  - Add `Camera VMD` button
+- Shortcuts:
+  - `Ctrl + Shift + M`: Camera VMD load
+- On load success:
+  - Status display: `Camera motion loaded`
+  - Toast display: `Loaded camera motion: <name>`
+- Timeline:
+  - Display `Camera` keyframes in separate lane
+  - Displayed simultaneously with model VMD bone/morph tracks
 
-## 現在の制限
+## Current Constraints
 
-- カメラVMDは 1 本のみ保持（新規読込で上書き）
-- カメラトラックが空のVMDは読み込み不可
-- モデルVMDとカメラVMDの長さが異なる場合、全体フレームは runtime duration に従う
+- Only 1 camera VMD held (overwritten on new load)
+- Cannot load VMD with empty camera track
+- When model VMD and camera VMD lengths differ, overall frames follow runtime duration
 
-## 将来拡張の候補
+## Future Extension Candidates
 
-- カメラVMDの複数保持と切り替え
-- カメラVMDの解除ボタン（現在は再読込で差し替え）
-- カメラキーフレームをタイムラインへ別レーン表示
+- Multiple camera VMD holding and switching
+- Camera VMD clear button (currently replaced on reload)
+- Display camera keyframes to timeline as separate lane

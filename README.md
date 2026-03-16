@@ -1,23 +1,23 @@
 # MMD modoki
 
-Babylon.js Editor と `babylon-mmd` をベースにした、MMD もどきのローカル編集ツールです。  
-PMX/PMD モデル、アクセサリー、VMD、カメラ VMD、音声を読み込み、タイムライン編集とプレビュー、PNG 出力を行えます。
+A local MMD-style editing tool based on Babylon.js Editor and `babylon-mmd`.  
+You can load PMX/PMD models, accessories, VMD, camera VMD, and audio, perform timeline editing and preview, and export PNG output.
 
-## ダウンロード
+## Download
 
-- Release 一覧: https://github.com/togechiyo/MMD_modoki/releases
+- Release list: https://github.com/togechiyo/MMD_modoki/releases
 
-配布物は OS ごとの zip です。
+The distribution is provided as OS-specific zip files.
 
 - `mmd-modoki-windows-x64-zip.zip`
 - `mmd-modoki-macos-x64-zip.zip`
 - `mmd-modoki-linux-x64-zip.zip`
 
-## 起動方法
+## How to Start
 
-1. `Releases` から自分の OS 向け zip をダウンロードします。
-2. zip を展開します。
-3. 展開したフォルダ内のアプリ本体を起動します。
+1. Download the zip file for your OS from `Releases`.
+2. Extract the zip file.
+3. Launch the application from the extracted folder.
 
 Windows:
 - `MMD modoki.exe`
@@ -26,79 +26,79 @@ macOS:
 - `MMD modoki.app`
 
 Linux:
-- Linux 版は環境によって `--no-sandbox`を付けて起動する必要がある場合があります。`chrome-sandbox` 起因の起動失敗を避けるための暫定対応です。
-- 展開先の実行ファイルを直接起動します。
+- The Linux version may require launching with `--no-sandbox` depending on your environment. This is a temporary measure to avoid startup failures caused by `chrome-sandbox`.
+- Launch the executable directly from the extracted location.
 
-## 初回起動時の注意
+## First Launch Notes
 
-- macOS 版は未署名のため、Gatekeeper の警告が出る場合があります。
-- Linux 版は環境によって追加ライブラリが必要になる場合があります。
-- 初期版のため、今後保存形式や UI を調整する可能性があります。
+- The macOS version is unsigned, so you may see a Gatekeeper warning.
+- The Linux version may require additional libraries depending on your environment.
+- As this is an initial release, the save format and UI may be adjusted in the future.
 
-## できること
+## Features
 
-- PMX/PMD モデルの読み込み
-- `.x` アクセサリーの読み込み
-- VMD モーション、カメラ VMD の読み込み
-- MP3/WAV 音声の読み込み
-- タイムライン編集
-- ボーン、モーフ、カメラ、照明の調整
-- PNG 保存、PNG 連番保存
-- DoF、Bloom、LUT などのポストエフェクト調整
+- Load PMX/PMD models
+- Load `.x` accessories
+- Load VMD motions and camera VMD
+- Load MP3/WAV audio
+- Timeline editing
+- Adjust bones, morphs, camera, and lighting
+- Save PNG, PNG sequence
+- Adjust post effects such as DoF, Bloom, LUT
 
-補足:
-- SSAO は負荷対策のため現行ビルドでは常時 OFF です。
-- アンチエイリアスは `MSAA x4 + FXAA` を使用しています。
+Notes:
+- SSAO is always OFF in the current build to reduce load.
+- Anti-aliasing uses `MSAA x4 + FXAA`.
 
-## 読み込めるファイル
+## Supported File Types
 
-通常の読み込みまたはドラッグ&ドロップに対応:
+Supported for normal loading or drag & drop:
 
-- モデル: `.pmx` `.pmd`
-- アクセサリー: `.x`
-- モーション/ポーズ: `.vmd` `.vpd`
-- カメラモーション: `.vmd`
-- 音声: `.mp3` `.wav`
+- Models: `.pmx` `.pmd`
+- Accessories: `.x`
+- Motions/poses: `.vmd` `.vpd`
+- Camera motions: `.vmd`
+- Audio: `.mp3` `.wav`
 
-専用 UI から読み込み:
+Load from dedicated UI:
 
-- プロジェクト: `.json`（既定ファイル名: `*.modoki.json`）
+- Projects: `.json` (default filename: `*.modoki.json`)
 
-補足:
+Notes:
 
-- `.vmd` は内容に応じてモデルモーションまたはカメラモーションとして読み込みます。
-- `.x` はテキスト形式の DirectX X ファイルを想定しています。
+- `.vmd` files are loaded as model motions or camera motions depending on their content.
+- `.x` files are expected to be text-format DirectX X files.
 
-## 基本操作
+## Basic Operations
 
-- `Ctrl + O`: PMX/PMD を開く
-- `Ctrl + M`: VMD を開く
-- `Ctrl + Shift + M`: カメラ VMD を開く
-- `Ctrl + Shift + A`: 音声を開く
-- `Ctrl + S`: プロジェクト保存 / 上書き保存
-- `Ctrl + Alt + S`: 名前を付けて保存
-- `Ctrl + Shift + S`: PNG 保存
-- `Space` または `P`: 再生 / 停止
-- `Delete`: 選択キーフレーム削除
+- `Ctrl + O`: Open PMX/PMD
+- `Ctrl + M`: Open VMD
+- `Ctrl + Shift + M`: Open camera VMD
+- `Ctrl + Shift + A`: Open audio
+- `Ctrl + S`: Save project / Overwrite save
+- `Ctrl + Alt + S`: Save as
+- `Ctrl + Shift + S`: Save PNG
+- `Space` or `P`: Play / Stop
+- `Delete`: Delete selected keyframe
 
-マウス:
-- 中ボタンドラッグ: 視点移動
-- 右ドラッグ: 回転
-- ホイール: ズーム
+Mouse:
+- Middle button drag: Move view
+- Right button drag: Rotate
+- Wheel: Zoom
 
-## 開発
+## Development
 
-必要環境:
-- Node.js 18 以上
+Required environment:
+- Node.js 18 or higher
 - npm
 
-セットアップ:
+Setup:
 
 ```bash
 npm install
 ```
 
-開発起動:
+Development launch:
 
 ```bash
 npm start
@@ -110,28 +110,28 @@ Lint:
 npm run lint
 ```
 
-配布ビルド:
+Distribution build:
 
 ```bash
 npm run package
 npm run make
 ```
 
-zip 配布物作成:
+Create zip distribution:
 
 ```bash
 npm run make:zip
 ```
 
-## ドキュメント
+## Documentation
 
-- ドキュメント入口: [docs/README.md](./docs/README.md)
-- アーキテクチャ: [docs/architecture.md](./docs/architecture.md)
-- MmdManager 解説: [docs/mmd-manager.md](./docs/mmd-manager.md)
-- UI フロー: [docs/ui-flow.md](./docs/ui-flow.md)
-- トラブルシュート: [docs/troubleshooting.md](./docs/troubleshooting.md)
+- Documentation index: [docs/README.md](./docs/README.md)
+- Architecture: [docs/architecture.md](./docs/architecture.md)
+- MmdManager explanation: [docs/mmd-manager.md](./docs/mmd-manager.md)
+- UI flow: [docs/ui-flow.md](./docs/ui-flow.md)
+- Troubleshooting: [docs/troubleshooting.md](./docs/troubleshooting.md)
 
-## ライセンス
+## License
 
 - This project: [MIT](./LICENSE)
 - Third-party notices: [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)

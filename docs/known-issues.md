@@ -1,29 +1,29 @@
-# 既知課題（現行）
+# Known Issues (Current)
 
-更新日: 2026-02-23
+Updated: 2026-02-23
 
-## 1. 編集機能
-- 補間曲線編集は実装済みだが、複数キー同時編集やコピー/ペーストは未対応。
-- カメラキー追加時の実値/補間スナップショット保存は実装済みだが、範囲編集UIは未実装。
-- Property（表示/IK）トラック編集は未実装。
-- VMDエクスポートは未実装。
-- プロジェクトJSONは実装済みだが、外部ツール連携向けの仕様ドキュメント整備が不足。
+## 1. Editing Features
+- Interpolation curve editing is implemented, but multiple key simultaneous editing and copy/paste are not supported.
+- Actual value/interpolation snapshot saving when adding camera keys is implemented, but range editing UI is not implemented.
+- Property (display/IK) track editing is not implemented.
+- VMD export is not implemented.
+- Project JSON is implemented, but specification documentation for external tool integration is insufficient.
 
-## 2. タイムライン表現
-- カメラ1行は同一フレーム列共有で、チャンネル別の独立キー編集は未対応。
-- キー編集は追加/削除/1f移動が中心で、高度な範囲編集は未実装。
+## 2. Timeline Representation
+- Camera rows share the same frame column, and independent key editing by channel is not supported.
+- Key editing is centered on add/delete/1f move, and advanced range editing is not implemented.
 
-## 3. 物理
-- 剛体モード 0/1/2 の運用仕様が未文書化。
-- `disableBidirectionalTransformation` 相当切替の設計未完。
-- 剛体/拘束デバッグ可視化は未実装。
+## 3. Physics
+- Operational specifications for rigid body modes 0/1/2 are undocumented.
+- Design for `disableBidirectionalTransformation` equivalent switching is incomplete.
+- Rigid body/constraint debug visualization is not implemented.
 
-## 4. 技術的注意
-- `src/mmd-manager.ts` に文字コード由来の編集リスクがある環境がある。
-- リポジトリはCRLF変換警告が出るため、差分確認時に行末変化へ注意。
+## 4. Technical Notes
+- There are environments with editing risks due to character encoding in `src/mmd-manager.ts`.
+- The repository shows CRLF conversion warnings, so pay attention to line ending changes when checking diffs.
 
-## 5. 対応優先候補
-- 1. Propertyトラック編集
-- 2. VMDエクスポート
-- 3. キー編集の範囲操作（複製/貼り付け/スケール）
-- 4. 回転補間のMMD実機比較テスト自動化
+## 5. Priority Candidates for Support
+- 1. Property track editing
+- 2. VMD export
+- 3. Range operations for key editing (duplicate/paste/scale)
+- 4. Automated rotation interpolation MMD actual machine comparison testing

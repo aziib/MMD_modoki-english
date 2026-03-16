@@ -1,86 +1,86 @@
-# キーフレーム保存仕様（現行）
+# Keyframe Storage Specification (Current)
 
-更新日: 2026-02-23
-対象:
+Updated: 2026-02-23
+Target:
 - `src/mmd-manager.ts`
 - `src/types.ts`
 
-## 1. データ構造
+## 1. Data Structure
 
-### 1-1. トラック単位
-- 型: `KeyframeTrack`
-- `name`: トラック名
+### 1-1. Track Unit
+- Type: `KeyframeTrack`
+- `name`: Track name
 - `category`: `root | camera | semi-standard | bone | morph`
-- `frames`: `Uint32Array`（昇順・重複なし）
+- `frames`: `Uint32Array` (ascending, no duplicates)
 
-参照: `src/types.ts:45`
+Reference: `src/types.ts:45`
 
-### 1-2. 実ストレージ
-- モデル: `WeakMap<MmdModel, Map<string, Uint32Array>>`
-- カメラ: `cameraKeyframeFrames: Uint32Array`
-- `Map` キーは `createTrackKey(category,name)`（区切りは `\u001f`）
+### 1-2. Actual Storage
+- Model: `WeakMap<MmdModel, Map<string, Uint32Array>>`
+- Camera: `cameraKeyframeFrames: Uint32Array`
+- `Map` key is `createTrackKey(category,name)` (separator is `\u001f`)
 
-参照:
+Reference:
 - `src/mmd-manager.ts:133`
 - `src/mmd-manager.ts:210`
 
-## 2. 不変条件
-- `frames` は常に昇順
-- `frames` に重複なし
-- 追加/削除/移動は immutable 風に新配列を生成して差し替える
+## 2. Invariant Conditions
+- `frames` is always ascending
+- No duplicates in `frames`
+- Add/delete/move generates new array in immutable style and replaces
 
-参照:
+Reference:
 - `src/mmd-manager.ts:83`
 - `src/mmd-manager.ts:105`
 - `src/mmd-manager.ts:126`
 
-## 3. 操作仕様
+## 3. Operation Specification
 
 ### 3-1. has
 - `hasTimelineKeyframe(track, frame)`
-- frameは `Math.floor`, 下限0に正規化
-- cameraカテゴリは `cameraKeyframeFrames` を参照
+- frame is `Math.floor`, normalized to lower limit 0
+- camera category references `cameraKeyframeFrames`
 
-参照: `src/mmd-manager.ts:1165`
+Reference: `src/mmd-manager.ts:1165`
 
 ### 3-2. add
 - `addTimelineKeyframe(track, frame)`
-- 既存フレームなら no-op (`false`)
-- 変更時は `emitMergedKeyframeTracks()`
+- If existing frame, no-op (`false`)
+- On change, `emitMergedKeyframeTracks()`
 
-参照: `src/mmd-manager.ts:1179`
+Reference: `src/mmd-manager.ts:1179`
 
 ### 3-3. remove
 - `removeTimelineKeyframe(track, frame)`
-- 非存在なら no-op (`false`)
-- 変更時は `emitMergedKeyframeTracks()`
+- If non-existent, no-op (`false`)
+- On change, `emitMergedKeyframeTracks()`
 
-参照: `src/mmd-manager.ts:1201`
+Reference: `src/mmd-manager.ts:1201`
 
 ### 3-4. move
 - `moveTimelineKeyframe(track, from, to)`
-- 実装は `remove + add`
-- 移動先に既存キーがあっても最終的に重複なし配列へ収束
+- Implementation is `remove + add`
+- Even if existing key at move destination, ultimately converges to no-duplicate array
 
-参照: `src/mmd-manager.ts:1223`
+Reference: `src/mmd-manager.ts:1223`
 
-## 4. 読み込みからの投入
-- VMD/VPD読み込み時は `buildModelTrackFrameMapFromAnimation()` で再構築
-- `frameOffset` を与えて読み込みフレームへオフセット可能（VPDで使用）
+## 4. Injection from Load
+- On VMD/VPD load, rebuild with `buildModelTrackFrameMapFromAnimation()`
+- Can offset to load frame by giving `frameOffset` (used in VPD)
 
-参照:
+Reference:
 - `src/mmd-manager.ts:3729`
 - `src/mmd-manager.ts:2102`
 
-## 5. トラック再生成
-- 出力トラックは毎回 `getActiveModelTimelineTracks()` / `getCameraTimelineTracks()` で生成する。
-- 表示対象ボーンのみにフィルタされるため、ストレージに残っても非表示化されるケースがある。
+## 5. Track Regeneration
+- Output tracks are generated every time with `getActiveModelTimelineTracks()` / `getCameraTimelineTracks()`.
+- Since filtered to display target bones only, cases where non-displayed even if remaining in storage exist.
 
-参照:
+Reference:
 - `src/mmd-manager.ts:3765`
 - `src/mmd-manager.ts:3858`
 
-## 6. 現状の制約
-- タイムライン管理（`MmdManager`）はフレーム位置中心だが、キー登録時に `UIController` で source animation へ値/補間スナップショットを挿入して同期している。
-- cameraは1行表示だが、編集データは `X/Y/Z/回転/距離/FoV` の6chを保持している。
-- Propertyトラック（表示/IK）は未対応。
+## 6. Current Constraints
+- Timeline management (`MmdManager`) is centered on frame position, but on key registration, `UIController` inserts value/interpolation snapshot to source animation to synchronize.
+- Camera is 1 row display, but edit data holds 6ch of `X/Y/Z/rotation/distance/FoV`.
+- Property tracks (display/IK) are not supported.

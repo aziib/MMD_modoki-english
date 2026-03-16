@@ -1,127 +1,127 @@
-# 物理実装仕様（現行）
+# Physics Implementation Specification (Current)
 
-更新日: 2026-03-12
+Updated: 2026-03-12
 
-## 目的
+## Purpose
 
-- `MMD_modoki` における物理演算の現在実装を明文化する。
-- Bullet 優先 / Ammo fallback の挙動と UI 表示を揃える。
+- Document current physics implementation in `MMD_modoki`.
+- Align Bullet priority / Ammo fallback behavior with UI display.
 
-## 対象範囲
+## Target Scope
 
-- 実装ファイル: `src/mmd-manager.ts`, `src/ui-controller.ts`, `index.html`, `src/main.ts`
-- 優先ランタイム: babylon-mmd `MultiPhysicsRuntime` + `MmdBulletPhysics`
-- fallback ランタイム: babylon-mmd `MmdAmmoJSPlugin` + `MmdAmmoPhysics`
+- Implementation files: `src/mmd-manager.ts`, `src/ui-controller.ts`, `index.html`, `src/main.ts`
+- Priority runtime: babylon-mmd `MultiPhysicsRuntime` + `MmdBulletPhysics`
+- Fallback runtime: babylon-mmd `MmdAmmoJSPlugin` + `MmdAmmoPhysics`
 
-## バックエンド選択仕様
+## Backend Selection Specification
 
-1. `MmdManager` 起動時に `initializePhysics()` を非同期で開始する。
-2. まず Bullet backend を初期化する。
-3. Bullet 初期化に失敗した場合だけ Ammo.js backend へ fallback する。
-4. Ammo も失敗した場合は物理を無効化したまま起動を継続する。
+1. Start `initializePhysics()` asynchronously when `MmdManager` starts.
+2. First initialize Bullet backend.
+3. Fallback to Ammo.js backend only when Bullet initialization fails.
+4. If Ammo also fails, continue startup with physics disabled.
 
-内部状態:
+Internal state:
 
 - `physicsBackend = "bullet" | "ammo" | "none"`
-- `physicsAvailable = true` のときだけモデル物理を構築する
-- `physicsEnabled = false` に落ちた場合でも PMX / VMD / 再生は継続可能
+- Build model physics only when `physicsAvailable = true`
+- Even if `physicsEnabled = false`, PMX / VMD / playback can continue
 
-## Bullet backend 初期化仕様
+## Bullet Backend Initialization Specification
 
-1. `spr/index_bg.wasm` を `?url` で解決して読み込む。
-2. `spr` wasm bindgen module を plain object 化して `memory` と `createTypedArray` を補完する。
-3. `MultiPhysicsRuntime` を生成して scene に register する。
-4. `MmdBulletPhysics` を生成し、MMD runtime 側の physics 実装として接続する。
+1. Load `spr/index_bg.wasm` with `?url` resolution.
+2. Convert `spr` wasm bindgen module to plain object and supplement `memory` and `createTypedArray`.
+3. Generate `MultiPhysicsRuntime` and register to scene.
+4. Generate `MmdBulletPhysics` and connect as physics implementation on MMD runtime side.
 
-現在の設定:
+Current settings:
 
 - fixed time step: `1 / 120`
 - max sub steps: `120`
 - gravity: `Vector3(0, -98, 0)`
 
-## Ammo fallback 初期化仕様
+## Ammo Fallback Initialization Specification
 
-1. `ammo.wasm.wasm` を `?url` で解決して `fetch` する。
-2. `Ammo({ wasmBinary })` で wasm バイナリを明示注入する。
-3. `MmdAmmoJSPlugin` を作成し `scene.enablePhysics(...)` を実行する。
-4. `MmdAmmoPhysics` を生成して MMD runtime 側へ接続する。
+1. Resolve `ammo.wasm.wasm` with `?url` and `fetch`.
+2. Explicitly inject wasm binary with `Ammo({ wasmBinary })`.
+3. Create `MmdAmmoJSPlugin` and execute `scene.enablePhysics(...)`.
+4. Generate `MmdAmmoPhysics` and connect to MMD runtime side.
 
-現在の設定:
+Current settings:
 
 - gravity: `Vector3(0, -98, 0)`
 - max steps: `120`
 - fixed time step: `1 / 120`
 
-## モデルロード時の仕様
+## Model Load Specification
 
-- `loadPMX` は `physicsInitializationPromise` 完了後に進む。
-- 物理が利用可能な場合は `createMmdModel(..., { buildPhysics: { disableOffsetForConstraintFrame: true } })`
-- 物理が利用不可な場合は `createMmdModel(..., { buildPhysics: false })`
-- `disableOffsetForConstraintFrame: true` は Bullet / Ammo の両 backend で維持する
+- `loadPMX` proceeds after `physicsInitializationPromise` completes.
+- When physics is available, `createMmdModel(..., { buildPhysics: { disableOffsetForConstraintFrame: true } })`
+- When physics is unavailable, `createMmdModel(..., { buildPhysics: false })`
+- Maintain `disableOffsetForConstraintFrame: true` for both Bullet / Ammo backends
 
-## 重力適用仕様
+## Gravity Application Specification
 
-- Bullet 使用時は `MultiPhysicsRuntime.setGravity(...)` へ反映する。
-- Ammo 使用時は Babylon physics engine (`scene.getPhysicsEngine()?.setGravity(...)`) へ反映する。
-- UI 上の重力変更は backend を意識せず同じ API で扱う。
+- When using Bullet, reflect to `MultiPhysicsRuntime.setGravity(...)`.
+- When using Ammo, reflect to Babylon physics engine (`scene.getPhysicsEngine()?.setGravity(...)`).
+- Handle gravity changes on UI with same API without being aware of backend.
 
-## ON / OFF 仕様
+## ON / OFF Specification
 
-- 物理 ON / OFF は `model.rigidBodyStates` を全剛体 `1 / 0` で切替する。
-- 公開 API:
+- Physics ON / OFF switches all rigid bodies `1 / 0` with `model.rigidBodyStates`.
+- Public API:
   - `isPhysicsAvailable()`
   - `getPhysicsEnabled()`
   - `setPhysicsEnabled(enabled)`
   - `togglePhysicsEnabled()`
   - `getPhysicsBackendLabel()`
-- 状態通知:
+- State notification:
   - `onPhysicsStateChanged(enabled, available)`
 
-## UI 仕様
+## UI Specification
 
-物理トグル:
+Physics toggle:
 
-- ボタン ID: `btn-toggle-physics`
-- ラベル ID: `physics-toggle-text`
-- 表示:
-  - `物理ON`
-  - `物理OFF`
-  - `物理不可`
+- Button ID: `btn-toggle-physics`
+- Label ID: `physics-toggle-text`
+- Display:
+  - `Physics ON`
+  - `Physics OFF`
+  - `Physics unavailable`
 
-上パネル backend バッジ:
+Top panel backend badge:
 
 - ID: `physics-type-badge`
-- 表示:
+- Display:
   - `Bullet`
   - `Ammo`
   - `Off`
-- 配色:
-  - `Bullet`: 緑
-  - `Ammo`: amber
-  - `Off`: 灰
+- Color scheme:
+  - `Bullet`: Green
+  - `Ammo`: Amber
+  - `Off`: Gray
 
-## 破棄仕様
+## Disposal Specification
 
-- Bullet 使用時は `bulletPhysicsRuntime.unregister()` と `dispose()` を実行する。
-- Ammo 使用時は Babylon physics engine / plugin 側の dispose 経路に従う。
-- 終了時は `physicsBackend = "none"` へ戻す。
+- When using Bullet, execute `bulletPhysicsRuntime.unregister()` and `dispose()`.
+- When using Ammo, follow Babylon physics engine / plugin disposal path.
+- On completion, return to `physicsBackend = "none"`.
 
-## エラーハンドリング仕様
+## Error Handling Specification
 
-- Bullet 初期化失敗時:
-  - warning をコンソール出力
-  - Ammo backend へ fallback
-- Ammo も失敗した場合:
+- When Bullet initialization fails:
+  - Output warning to console
+  - Fallback to Ammo backend
+- When Ammo also fails:
   - `physicsAvailable = false`
   - `physicsEnabled = false`
   - `physicsBackend = "none"`
-  - `onPhysicsStateChanged(false, false)` を通知
-  - `onError("Physics init warning: ...")` を通知
+  - Notify `onPhysicsStateChanged(false, false)`
+  - Notify `onError("Physics init warning: ...")`
 
-## 既知の制約
+## Known Constraints
 
-- 物理パラメータは現状ハードコード。
-- backend 手動選択 UI は未実装で、自動選択のみ。
-- `disableBidirectionalTransformation` 相当のユーザー切替は未実装。
-- 詳細なデバッグ表示（剛体 / 拘束可視化）は未実装。
-- Electron 側の V8 old-space は `4096MB` に拡張済みだが、極端に重い複数モデルでのメモリ上限を保証するものではない。
+- Physics parameters are currently hardcoded.
+- Backend manual selection UI is not implemented, only automatic selection.
+- User switching equivalent to `disableBidirectionalTransformation` is not implemented.
+- Detailed debug display (rigid body / constraint visualization) is not implemented.
+- Electron side V8 old-space is expanded to `4096MB`, but does not guarantee memory limit for extremely heavy multiple models.
