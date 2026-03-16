@@ -22,13 +22,6 @@ The distribution is provided as OS-specific zip files.
 Windows:
 - `MMD modoki.exe`
 
-macOS:
-- `MMD modoki.app`
-
-Linux:
-- The Linux version may require launching with `--no-sandbox` depending on your environment. This is a temporary measure to avoid startup failures caused by `chrome-sandbox`.
-- Launch the executable directly from the extracted location.
-
 ## First Launch Notes
 
 - The macOS version is unsigned, so you may see a Gatekeeper warning.
