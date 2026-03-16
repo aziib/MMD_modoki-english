@@ -1441,16 +1441,16 @@ export class UIController {
 
     private formatWebmExportPhaseLabel(phase: WebmExportProgress["phase"]): string {
         switch (phase) {
-            case "initializing": return "準備中";
-            case "loading-project": return "読込中";
-            case "checking-codec": return "設定確認中";
-            case "opening-output": return "保存準備中";
-            case "encoding": return "出力中";
-            case "closing-track": return "仕上げ中";
-            case "finalizing": return "保存中";
-            case "finishing-job": return "完了処理中";
-            case "completed": return "完了";
-            case "failed": return "失敗";
+            case "initializing": return t("export.status.preparing");
+            case "loading-project": return t("export.status.loading");
+            case "checking-codec": return t("export.status.checking");
+            case "opening-output": return t("export.status.opening");
+            case "encoding": return t("export.status.encoding");
+            case "closing-track": return t("export.status.closing");
+            case "finalizing": return t("export.status.finalizing");
+            case "finishing-job": return t("export.status.finishing");
+            case "completed": return t("export.status.completed");
+            case "failed": return t("export.status.failed");
             default: return phase;
         }
     }
@@ -3491,14 +3491,14 @@ export class UIController {
         btnDelete.disabled = !enabled;
 
         if (!enabled) {
-            btnVisibility.textContent = "非表示";
+            btnVisibility.textContent = t("common.visibility.hide");
             return;
         }
 
         const accessories = this.mmdManager.getLoadedAccessories();
         const current = accessories.find((item) => item.index === selectedIndex);
         const visible = current?.visible ?? true;
-        btnVisibility.textContent = visible ? "非表示" : "表示";
+        btnVisibility.textContent = visible ? t("common.visibility.hide") : t("common.visibility.show");
     }
 
     private isShaderPanelExpanded(): boolean {
@@ -4173,7 +4173,7 @@ export class UIController {
                     <span data-postfx-val="bloom-enabled" class="effect-value">OFF</span>
                 </div>
                 <div class="effect-row">
-                    <span class="effect-label">Bloom強度</span>
+                    <span class="effect-label">Bloom Weight</span>
                     <input data-postfx="bloom-weight" type="range" class="effect-slider" min="0" max="200" value="0" step="1">
                     <span data-postfx-val="bloom-weight" class="effect-value">OFF</span>
                 </div>

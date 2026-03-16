@@ -13,6 +13,7 @@ import { RenderTargetTexture } from "@babylonjs/core/Materials/Textures/renderTa
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import type { Camera } from "@babylonjs/core/Cameras/camera";
 import type { Scene } from "@babylonjs/core/scene";
+import { t } from "./i18n";
 import { MmdManager } from "./mmd-manager";
 import type { WebmExportPhase, WebmExportRequest } from "./types";
 
@@ -360,19 +361,19 @@ const finalizeWebmOutputWithDiagnostics = async (
 
     outputInternal._finalizePromise = (async () => {
         outputInternal.state = "finalizing";
-        updateStatus(callbacks, "Finalizing WebM: acquiring output mutex...", "finalizing");
+        updateStatus(callbacks, t("export.status.finalizingWebmMutex"), "finalizing");
         const release = await outputInternal._mutex.acquire();
         try {
-            updateStatus(callbacks, "Finalizing WebM: flushing track sources...", "finalizing");
+            updateStatus(callbacks, t("export.status.finalizingWebmFlushing"), "finalizing");
             await Promise.all(outputInternal._tracks.map((track) => track.source._flushOrWaitForOngoingClose(false)));
-            updateStatus(callbacks, "Finalizing WebM: finalizing muxer...", "finalizing");
+            updateStatus(callbacks, t("export.status.finalizingWebmMuxer"), "finalizing");
             await outputInternal._muxer.finalize();
-            updateStatus(callbacks, "Finalizing WebM: flushing writer...", "finalizing");
+            updateStatus(callbacks, t("export.status.finalizingWebmFlushWriter"), "finalizing");
             await outputInternal._writer.flush();
-            updateStatus(callbacks, "Finalizing WebM: closing writer...", "finalizing");
+            updateStatus(callbacks, t("export.status.finalizingWebmCloseWriter"), "finalizing");
             await outputInternal._writer.finalize();
             outputInternal.state = "finalized";
-            updateStatus(callbacks, "Finalizing WebM: completed.", "finalizing");
+            updateStatus(callbacks, t("export.status.finalizingWebmCompleted"), "finalizing");
         } finally {
             release();
         }
@@ -405,11 +406,11 @@ export async function runWebmExportJob(
     const maxQueueLength = 16;
     const frameDuration = 1 / fps;
 
-    updateStatus(callbacks, "Initializing WebM export renderer...", "initializing");
+    updateStatus(callbacks, t("export.status.initializingRenderer"), "initializing");
     const mmdManager = await MmdManager.create(canvas);
 
     try {
-        updateStatus(callbacks, "Loading project into export renderer...", "loading-project");
+        updateStatus(callbacks, t("export.status.loadingProject"), "loading-project");
         const importResult = await mmdManager.importProjectState(request.project, { forExport: true });
         const expectedModelCount = request.project.scene.models.length;
         if (importResult.loadedModels < expectedModelCount) {
@@ -427,7 +428,7 @@ export async function runWebmExportJob(
 
         const videoBitrate = estimateVideoBitrate(outputWidth, outputHeight, fps);
 
-        updateStatus(callbacks, "Checking WebM codec support...", "checking-codec");
+        updateStatus(callbacks, t("export.status.checkingCodec"), "checking-codec");
         const selectedVideoEncoding = await selectWebmVideoEncoding(
             outputWidth,
             outputHeight,
@@ -446,7 +447,7 @@ export async function runWebmExportJob(
         let audioCodec: WebmAudioCodec | null = null;
         let audioSourceClosed = false;
         if (request.includeAudio && request.audioFilePath) {
-            updateStatus(callbacks, "Decoding audio for WebM track...", "loading-project");
+            updateStatus(callbacks, t("export.status.decodingAudio"), "loading-project");
             const decodedAudio = await decodeAudioFile(request.audioFilePath);
             audioSegment = sliceAudioBuffer(
                 decodedAudio,
@@ -475,7 +476,7 @@ export async function runWebmExportJob(
 
         const exportRuntimeInternals = mmdManager as unknown as ExportRuntimeInternals;
         const reusableFrameCapture = createReusableFrameCapture(exportRuntimeInternals, outputWidth, outputHeight);
-        updateStatus(callbacks, "Opening WebM output file...", "opening-output");
+        updateStatus(callbacks, t("export.status.openingOutput"), "opening-output");
         const saveSession = await window.electronAPI.beginWebmStreamSave(request.outputFilePath);
         if (!saveSession) {
             throw new Error("Failed to open WebM output file");
@@ -553,7 +554,14 @@ export async function runWebmExportJob(
         const reportProgress = (frame: number): void => {
             updateStatus(
                 callbacks,
-                `Exporting ${encodedFrames}/${totalFrames} encoded (${capturedFrames}/${totalFrames} captured, q=${queue.length}) ${buildPerformanceSummary(performanceStats)} ${encoderConfigSummary}`,
+                t("export.status.progressWebm", {
+                    encoded: encodedFrames,
+                    total: totalFrames,
+                    captured: capturedFrames,
+                    queue: queue.length,
+                    stats: buildPerformanceSummary(performanceStats),
+                    config: encoderConfigSummary
+                }),
                 "encoding",
             );
             callbacks.onProgress?.(encodedFrames, totalFrames, frame, capturedFrames);
@@ -599,7 +607,7 @@ export async function runWebmExportJob(
                 if (!audioSegment) {
                     throw new Error("Audio segment missing for WebM export");
                 }
-                updateStatus(callbacks, `Encoding audio track (${audioCodec ?? "unknown"})...`, "encoding");
+                updateStatus(callbacks, t("export.status.encodingAudio", { codec: audioCodec ?? "unknown" }), "encoding");
                 await audioSource.add(audioSegment);
                 audioSource.close();
                 audioSourceClosed = true;
@@ -609,7 +617,11 @@ export async function runWebmExportJob(
                 ? `${codec} hw-preferred`
                 : `${codec} fallback`;
             const codecLabel = audioCodec ? `${videoPathLabel} + ${audioCodec}` : videoPathLabel;
-            updateStatus(callbacks, `Encoding ${totalFrames} frame(s) to WebM (${codecLabel})... ${encoderConfigSummary}`, "encoding");
+            updateStatus(callbacks, t("export.status.encodingVideo", {
+                total: totalFrames,
+                codec: codecLabel,
+                config: encoderConfigSummary
+            }), "encoding");
             const consumerPromise = consumeQueue();
 
             try {
@@ -680,11 +692,11 @@ export async function runWebmExportJob(
                 throw fatalError;
             }
 
-            updateStatus(callbacks, `Closing WebM track (${codec})...`, "closing-track");
+            updateStatus(callbacks, t("export.status.closingTrack", { codec }), "closing-track");
             videoSource.close();
             sourceClosed = true;
 
-            updateStatus(callbacks, `Finalizing WebM (${codec})...`, "finalizing");
+            updateStatus(callbacks, t("export.status.finalizingWebm", { codec }), "finalizing");
             await withTimeout(finalizeWebmOutputWithDiagnostics(output, callbacks), 15_000, "WebM finalize");
             if (!savedPath) {
                 throw new Error("Failed to save WebM file");

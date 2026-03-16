@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { MmdManager } from "./mmd-manager";
 import { CreateScreenshotUsingRenderTargetAsync } from "@babylonjs/core/Misc/screenshotTools";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
@@ -134,11 +135,11 @@ export async function runPngSequenceExportJob(
         throw new Error("No frames to export");
     }
 
-    callbacks.onStatus?.("Initializing export renderer...");
+    callbacks.onStatus?.(t("export.status.initializingRenderer"));
     const mmdManager = await MmdManager.create(canvas);
 
     try {
-        callbacks.onStatus?.("Loading project into export renderer...");
+        callbacks.onStatus?.(t("export.status.loadingProject"));
         const importResult = await mmdManager.importProjectState(request.project);
         const expectedModelCount = request.project.scene.models.length;
         if (importResult.loadedModels < expectedModelCount) {
@@ -149,7 +150,7 @@ export async function runPngSequenceExportJob(
         }
         if (importResult.warnings.length > 0) {
             callbacks.onStatus?.(
-                `Project loaded with warnings (${importResult.warnings.length})`
+                t("export.status.loadedWithWarnings", { count: importResult.warnings.length })
             );
         }
 
@@ -173,7 +174,12 @@ export async function runPngSequenceExportJob(
 
         const reportProgress = (frame: number): void => {
             callbacks.onStatus?.(
-                `Exporting ${savedCount}/${totalFrames} saved (${capturedCount}/${totalFrames} captured, q=${queue.length})`
+                t("export.status.progressSequence", {
+                    saved: savedCount,
+                    total: totalFrames,
+                    captured: capturedCount,
+                    queue: queue.length
+                })
             );
             callbacks.onProgress?.(savedCount, totalFrames, frame, capturedCount);
         };
@@ -205,7 +211,11 @@ export async function runPngSequenceExportJob(
         };
 
         callbacks.onStatus?.(
-            `Exporting ${frameList.length} frame(s) in speed-priority mode... (${captureWidth}x${captureHeight})`
+            t("export.status.exportingFramesSpeed", {
+                count: frameList.length,
+                width: captureWidth,
+                height: captureHeight
+            })
         );
         const consumerPromises: Promise<void>[] = [];
         for (let i = 0; i < ioWorkerCount; i += 1) {

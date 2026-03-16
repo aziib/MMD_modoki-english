@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import type { MmdManager } from "./mmd-manager";
 import type { BoneControlInfo, ModelInfo, MorphDisplayFrameInfo } from "./types";
 
@@ -55,7 +56,7 @@ export class BottomPanel {
         if (info.boneNames.length === 0) {
             this.currentBoneName = null;
             this.boneSelect.disabled = true;
-            this.boneContainer.innerHTML = '<div class="panel-empty-state">No bones</div>';
+            this.boneContainer.innerHTML = `<div class="panel-empty-state">${t("bottomPanel.noBones")}</div>`;
             return;
         }
 
@@ -77,14 +78,14 @@ export class BottomPanel {
             ? info.morphDisplayFrames
             : info.morphNames.length > 0
                 ? [{
-                    name: "All",
+                    name: t("bottomPanel.all"),
                     morphs: info.morphNames.map((name, index) => ({ index, name })),
                 }]
                 : [];
 
         if (this.morphFrames.length === 0) {
             this.morphFrameSelect.disabled = true;
-            this.morphContainer.innerHTML = '<div class="panel-empty-state">No morphs</div>';
+            this.morphContainer.innerHTML = `<div class="panel-empty-state">${t("bottomPanel.noMorphs")}</div>`;
             return;
         }
 
@@ -119,7 +120,7 @@ export class BottomPanel {
         this.boneControlMap.clear();
         this.boneSelect.innerHTML = '<option value="">-</option>';
         this.boneSelect.disabled = true;
-        this.boneContainer.innerHTML = '<div class="panel-empty-state">No model</div>';
+        this.boneContainer.innerHTML = `<div class="panel-empty-state">${t("bottomPanel.noModel")}</div>`;
     }
 
     clearMorphControls(): void {
@@ -127,7 +128,7 @@ export class BottomPanel {
         this.morphSliders.clear();
         this.morphFrameSelect.innerHTML = '<option value="">-</option>';
         this.morphFrameSelect.disabled = true;
-        this.morphContainer.innerHTML = '<div class="panel-empty-state">No model</div>';
+        this.morphContainer.innerHTML = `<div class="panel-empty-state">${t("bottomPanel.noModel")}</div>`;
     }
 
     getSelectedBone(): string | null {
@@ -158,7 +159,7 @@ export class BottomPanel {
         this.boneSliderValues.clear();
 
         if (!this.currentBoneName) {
-            this.boneContainer.innerHTML = '<div class="panel-empty-state">No bone selected</div>';
+            this.boneContainer.innerHTML = `<div class="panel-empty-state">${t("bottomPanel.noBoneSelected")}</div>`;
             return;
         }
 
@@ -215,7 +216,7 @@ export class BottomPanel {
         }
 
         if (sliderDefs.length === 0) {
-            this.boneContainer.innerHTML = '<div class="panel-empty-state">No editable channels</div>';
+            this.boneContainer.innerHTML = `<div class="panel-empty-state">${t("bottomPanel.noEditableChannels")}</div>`;
             return;
         }
 
@@ -394,7 +395,7 @@ export class BottomPanel {
 
         const frame = this.morphFrames[frameIndex];
         if (!frame) {
-            this.morphContainer.innerHTML = '<div class="panel-empty-state">No frame</div>';
+            this.morphContainer.innerHTML = `<div class="panel-empty-state">${t("bottomPanel.noFrame")}</div>`;
             return;
         }
 

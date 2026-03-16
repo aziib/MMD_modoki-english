@@ -591,7 +591,7 @@ ipcMain.handle('file:savePng', async (_event, dataUrl: string, defaultFileName?:
       : `${defaultFileName ?? 'mmd_capture'}.png`;
 
     const result = await dialog.showSaveDialog({
-      title: 'PNG画像を保存',
+      title: 'Save PNG Image',
       defaultPath: path.join(app.getPath('pictures'), safeName),
       filters: [{ name: 'PNG Image', extensions: ['png'] }],
     });

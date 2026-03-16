@@ -7,7 +7,7 @@ export type UiLocale = "ja" | "en";
 type TranslationTable = Record<string, string>;
 
 const STORAGE_KEY = "mmd.ui.locale";
-const DEFAULT_LOCALE: UiLocale = "ja";
+const DEFAULT_LOCALE: UiLocale = "en";
 
 const translations: Record<UiLocale, TranslationTable> = {
     ja: jaTranslation as TranslationTable,
