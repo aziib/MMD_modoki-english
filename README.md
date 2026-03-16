@@ -1,17 +1,17 @@
-# MMD modoki
+# MMD modoki English version
 
 A local MMD-style editing tool based on Babylon.js Editor and `babylon-mmd`.  
 You can load PMX/PMD models, accessories, VMD, camera VMD, and audio, perform timeline editing and preview, and export PNG output.
 
+if you like this project, you can support me on [ko-fi](https://ko-fi.com/megaaziib) because i will adding more features that is not available on the japanese original version.
+
 ## Download
 
-- Release list: https://github.com/togechiyo/MMD_modoki/releases
+- Release list: https://github.com/aziib/MMD_modoki-english/releases
 
 The distribution is provided as OS-specific zip files.
 
 - `mmd-modoki-windows-x64-zip.zip`
-- `mmd-modoki-macos-x64-zip.zip`
-- `mmd-modoki-linux-x64-zip.zip`
 
 ## How to Start
 
